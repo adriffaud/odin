@@ -20,6 +20,7 @@ const (
 	StateInput     ApplicationState = "input"
 	StateSearching ApplicationState = "searching"
 	StateResults   ApplicationState = "results"
+	StateLoading ApplicationState = "loading"
 )
 
 // Model represents the application model
@@ -28,6 +29,7 @@ type Model struct {
 	state         ApplicationState
 	input         textinput.Model
 	placesList    list.Model
+	selectedPlace types.Place
 	err           error
 }
 
@@ -71,7 +73,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, service.SearchPlaces(query)
 			} else if m.state == StateResults {
 				if i, ok := m.placesList.SelectedItem().(types.Place); ok {
-					fmt.Printf("Selected: %s (%s)\n", i.Name, i.Address)
+					m.selectedPlace = i
+					m.state = StateLoading
+					return m, service.GetWeather(i.Latitude, i.Longitude)
 				}
 				return m, tea.Quit
 			}

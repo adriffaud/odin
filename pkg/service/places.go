@@ -68,7 +68,19 @@ func SearchPlaces(query string) tea.Cmd {
 			}
 
 			address := strings.Join(addressParts, ", ")
-			items = append(items, types.Place{Name: name, Address: address})
+
+			var lat, lon float64
+			if len(feature.Geometry.Coordinates) >= 2 {
+				lon = feature.Geometry.Coordinates[0]
+				lat = feature.Geometry.Coordinates[1]
+			}
+
+			items = append(items, types.Place{
+				Name:      name,
+				Address:   address,
+				Latitude:  lat,
+				Longitude: lon,
+			})
 		}
 
 		if len(items) == 0 {

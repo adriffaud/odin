@@ -4,8 +4,10 @@ import "github.com/charmbracelet/bubbles/list"
 
 // Place represents a location with a name and address
 type Place struct {
-	Name    string
-	Address string
+	Name      string
+	Address   string
+	Latitude  float64
+	Longitude float64
 }
 
 // Implement list.Item interface
@@ -24,6 +26,9 @@ type PhotonResponse struct {
 			Street   string `json:"street,omitempty"`
 			PostCode string `json:"postCode,omitempty"`
 		} `json:"properties"`
+		Geometry struct {
+			Coordinates []float64 `json:"coordinates"`
+		} `json:"geometry"`
 	} `json:"features"`
 }
 
