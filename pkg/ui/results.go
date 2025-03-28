@@ -11,11 +11,23 @@ func InitResultsList() list.Model {
 	l.Title = "Résultats"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
-	l.Styles.Title = lipgloss.NewStyle().MarginLeft(2)
+	l.Styles.Title = TitleStyle
+	l.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
 	return l
 }
 
 // ResultsView renders the results screen
-func ResultsView(resultsList list.Model) string {
-	return resultsList.View() + "\n\n(enter to select, esc to quit)"
+func ResultsView(resultsList list.Model, width, height int) string {
+	hint := "(entrer pour sélectionner, esc pour quitter)"
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		resultsList.View(),
+		"",
+		hint,
+	)
+
+	return BorderStyle.
+		Width(width - 2).
+		Height(height - 2).
+		Render(content)
 }

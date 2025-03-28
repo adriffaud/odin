@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // ApplicationState represents the current state of the application
@@ -113,17 +114,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the UI based on the current state
 func (m Model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Erreur: %s\n\nAppuyer sur une touche pour continuer...", m.err)
+		errorMsg := fmt.Sprintf("Erreur: %s\n\nAppuyer sur une touche pour continuer...", m.err)
+		return ui.BorderStyle.
+			Width(m.width-2).
+			Height(m.height-2).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render(errorMsg)
 	}
 
 	switch m.state {
 	case StateInput:
-		return ui.InputView(m.input)
+		return ui.InputView(m.input, m.width, m.height)
 	case StateSearching:
-		return "Recherche en cours...\n"
+		return ui.BorderStyle.
+			Width(m.width-2).
+			Height(m.height-2).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render("Recherche en cours...")
 	case StateResults:
-		return ui.ResultsView(m.placesList)
+		return ui.ResultsView(m.placesList, m.width, m.height)
 	default:
-		return "Chargement..."
+		return ui.BorderStyle.
+			Width(m.width-4).
+			Height(m.height-4).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render("Chargement...")
 	}
 }
