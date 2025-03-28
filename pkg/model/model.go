@@ -17,9 +17,9 @@ import (
 type ApplicationState string
 
 const (
-	StateInput     ApplicationState = "input"
-	StateSearching ApplicationState = "searching"
-	StateResults   ApplicationState = "results"
+	StateInput   ApplicationState = "input"
+	StateResults ApplicationState = "results"
+	StateWeather ApplicationState = "weather"
 	StateLoading ApplicationState = "loading"
 )
 
@@ -29,6 +29,7 @@ type Model struct {
 	state         ApplicationState
 	input         textinput.Model
 	placesList    list.Model
+	weatherData   types.WeatherData
 	selectedPlace types.Place
 	err           error
 }
@@ -55,10 +56,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+
+		case tea.KeyEsc:
 			if m.state == StateResults {
 				m.state = StateInput
 				m.input.Focus()
+				return m, nil
+			} else if m.state == StateWeather {
+				m.state = StateResults
 				return m, nil
 			}
 			return m, tea.Quit
@@ -69,7 +76,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if query == "" {
 					return m, nil
 				}
-				m.state = StateSearching
+				m.state = StateLoading
 				return m, service.SearchPlaces(query)
 			} else if m.state == StateResults {
 				if i, ok := m.placesList.SelectedItem().(types.Place); ok {
@@ -91,6 +98,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.placesList.SetItems(msg)
 		return m, nil
 
+	case types.WeatherResultMsg:
+		m.weatherData = msg.Data
+		m.state = StateWeather
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -103,7 +115,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Update active component based on state
-	if m.state == StateInput || m.state == StateSearching {
+	if m.state == StateInput || m.state == StateLoading {
 		m.input, cmd = m.input.Update(msg)
 		return m, cmd
 	} else if m.state == StateResults {
@@ -129,14 +141,21 @@ func (m Model) View() string {
 	switch m.state {
 	case StateInput:
 		return ui.InputView(m.input, m.width, m.height)
-	case StateSearching:
+	case StateLoading:
 		return ui.BorderStyle.
 			Width(m.width-2).
 			Height(m.height-2).
 			Align(lipgloss.Center, lipgloss.Center).
-			Render("Recherche en cours...")
+			Render("Chargement...")
 	case StateResults:
 		return ui.ResultsView(m.placesList, m.width, m.height)
+	case StateWeather:
+		placeName := m.selectedPlace.Name + " (" + m.selectedPlace.Address + ")"
+		weatherContent := ui.WeatherView(m.weatherData, placeName, m.width, m.height)
+		return ui.BorderStyle.
+			Width(m.width - 2).
+			Height(m.height - 2).
+			Render(weatherContent)
 	default:
 		return ui.BorderStyle.
 			Width(m.width-4).

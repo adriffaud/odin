@@ -20,7 +20,6 @@ type ErrMsg error
 // SearchPlaces searches for places based on the provided query
 func SearchPlaces(query string) tea.Cmd {
 	return func() tea.Msg {
-
 		params := url.Values{}
 		params.Add("q", query)
 		reqURL := photonAPI + "?" + params.Encode()
