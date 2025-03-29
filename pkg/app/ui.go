@@ -109,7 +109,11 @@ func RenderWeather(weather weather.WeatherData, placeName string, width, height 
 		forecastSection,
 	)
 
-	return content
+	return util.BorderStyle.
+		Width(width - 2).
+		Height(height - 2).
+		PaddingLeft(2).
+		Render(content)
 }
 
 func formatAstroInfo(w weather.WeatherData) string {
