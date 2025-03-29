@@ -67,15 +67,9 @@ func formatAstroInfo(w types.WeatherData) string {
 	sunrise, _ := astral.Sunrise(observer, today)
 	sunset, _ := astral.Sunset(observer, today)
 
-	moonPhase := astral.MoonPhase(today)
-	moonPhaseEmoji := getMoonPhaseEmoji(moonPhase)
-	moonPhaseName := getMoonPhaseName(moonPhase)
-
-	astroInfo := fmt.Sprintf("☀️ Lever: %s | Coucher: %s | %s %s | Aube astro: %s | Crépuscule astro: %s",
+	astroInfo := fmt.Sprintf("☀️ Lever: %s | Coucher: %s | Aube astro: %s | Crépuscule astro: %s",
 		formatTime(sunrise),
 		formatTime(sunset),
-		moonPhaseEmoji,
-		moonPhaseName,
 		formatTime(dawn),
 		formatTime(dusk),
 	)
@@ -85,48 +79,6 @@ func formatAstroInfo(w types.WeatherData) string {
 
 func formatTime(t time.Time) string {
 	return t.Format("15:04")
-}
-
-func getMoonPhaseEmoji(phase float64) string {
-	switch {
-	case phase < 0.05 || phase > 0.95:
-		return "🌑" // New moon
-	case phase < 0.20:
-		return "🌒" // Waxing crescent
-	case phase < 0.30:
-		return "🌓" // First quarter
-	case phase < 0.45:
-		return "🌔" // Waxing gibbous
-	case phase < 0.55:
-		return "🌕" // Full moon
-	case phase < 0.70:
-		return "🌖" // Waning gibbous
-	case phase < 0.80:
-		return "🌗" // Last quarter
-	default:
-		return "🌘" // Waning crescent
-	}
-}
-
-func getMoonPhaseName(phase float64) string {
-	switch {
-	case phase < 0.05 || phase > 0.95:
-		return "Nouvelle lune"
-	case phase < 0.20:
-		return "Premier croissant"
-	case phase < 0.30:
-		return "Premier quartier"
-	case phase < 0.45:
-		return "Gibbeuse croissante"
-	case phase < 0.55:
-		return "Pleine lune"
-	case phase < 0.70:
-		return "Gibbeuse décroissante"
-	case phase < 0.80:
-		return "Dernier quartier"
-	default:
-		return "Dernier croissant"
-	}
 }
 
 func formatForecast(w types.WeatherData) string {
