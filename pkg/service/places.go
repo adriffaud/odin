@@ -22,6 +22,7 @@ func SearchPlaces(query string) tea.Cmd {
 	return func() tea.Msg {
 		params := url.Values{}
 		params.Add("q", query)
+		params.Add("lang", "fr")
 		reqURL := photonAPI + "?" + params.Encode()
 
 		resp, err := http.Get(reqURL)
