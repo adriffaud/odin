@@ -102,8 +102,8 @@ func formatForecast(w types.WeatherData) string {
 
 	var forecast []string
 
-	// Get forecasts for the next 24 hours with 3-hour intervals
-	for i := 0; i < 24; i += 3 {
+	// Get forecasts for the next 24 hours
+	for i := range 24 {
 		timeStr := w.Hourly.Time[i]
 		t, _ := time.Parse(TIME_FORMAT, timeStr)
 
