@@ -8,6 +8,7 @@ import (
 	"driffaud.fr/odin/pkg/ui"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -31,15 +32,21 @@ type Model struct {
 	placesList    list.Model
 	weatherData   types.WeatherData
 	selectedPlace types.Place
+	spinner       spinner.Model
 	err           error
 }
 
 // InitialModel returns the initial application model
 func InitialModel() Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	return Model{
 		state:      StateInput,
 		input:      ui.InitInput(),
 		placesList: ui.InitResultsList(),
+		spinner:    s,
 		err:        nil,
 	}
 }
@@ -52,6 +59,7 @@ func (m Model) Init() tea.Cmd {
 // Update handles state transitions based on messages
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -77,12 +85,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.state = StateLoading
-				return m, service.SearchPlaces(query)
+				return m, tea.Batch(
+					service.SearchPlaces(query),
+					m.spinner.Tick,
+				)
 			} else if m.state == StateResults {
 				if i, ok := m.placesList.SelectedItem().(types.Place); ok {
 					m.selectedPlace = i
 					m.state = StateLoading
-					return m, service.GetWeather(i.Latitude, i.Longitude)
+					return m, tea.Batch(
+						service.GetWeather(i.Latitude, i.Longitude),
+						m.spinner.Tick,
+					)
 				}
 				return m, tea.Quit
 			}
@@ -115,9 +129,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Update active component based on state
-	if m.state == StateInput || m.state == StateLoading {
+	if m.state == StateInput {
 		m.input, cmd = m.input.Update(msg)
 		return m, cmd
+	} else if m.state == StateLoading {
+		m.spinner, cmd = m.spinner.Update(msg)
+		cmds = append(cmds, cmd)
+
+		m.input, cmd = m.input.Update(msg)
+		cmds = append(cmds, cmd)
+
+		return m, tea.Batch(cmds...)
 	} else if m.state == StateResults {
 		var listCmd tea.Cmd
 		m.placesList, listCmd = m.placesList.Update(msg)
@@ -142,11 +164,12 @@ func (m Model) View() string {
 	case StateInput:
 		return ui.InputView(m.input, m.width, m.height)
 	case StateLoading:
+		loadingMessage := fmt.Sprintf("%s Chargement...", m.spinner.View())
 		return ui.BorderStyle.
 			Width(m.width-2).
 			Height(m.height-2).
 			Align(lipgloss.Center, lipgloss.Center).
-			Render("Chargement...")
+			Render(loadingMessage)
 	case StateResults:
 		return ui.ResultsView(m.placesList, m.width, m.height)
 	case StateWeather:
