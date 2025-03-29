@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"driffaud.fr/odin/pkg/types"
@@ -63,19 +64,72 @@ func formatAstroInfo(w types.WeatherData) string {
 	today := time.Now()
 	tomorrow := today.AddDate(0, 0, 1)
 
+	phase := astral.MoonPhase(today)
+	phaseInfo := getMoonPhaseInfo(phase)
+	illumination := calculateMoonIllumination(phase)
+
 	dusk, _ := astral.Dusk(observer, today, astral.DepressionAstronomical)
 	dawn, _ := astral.Dawn(observer, tomorrow, astral.DepressionAstronomical)
 	sunset, _ := astral.Sunset(observer, today)
 	sunrise, _ := astral.Sunrise(observer, tomorrow)
 
-	astroInfo := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
+	sunInfo := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunset),
 		formatTime(dusk),
 		formatTime(dawn),
 		formatTime(sunrise),
 	)
 
-	return astroInfoStyle.Render(astroInfo)
+	moonInfo := fmt.Sprintf("%s %s %f | Illumination : %.0f%%",
+		phaseInfo.emoji,
+		phaseInfo.name,
+		phase,
+		illumination,
+	)
+
+	return astroInfoStyle.Render(lipgloss.JoinVertical(
+		lipgloss.Left,
+		sunInfo,
+		moonInfo,
+	))
+}
+
+// MoonPhaseInfo contains the name and emoji for a moon phase
+type MoonPhaseInfo struct {
+	name  string
+	emoji string
+}
+
+func getMoonPhaseInfo(phase float64) MoonPhaseInfo {
+	switch {
+	case phase < 3.5: // New moon
+		return MoonPhaseInfo{"Nouvelle lune", "🌑"}
+	case phase < 7: // Waxing crescent
+		return MoonPhaseInfo{"Premier croissant", "🌒"}
+	case phase < 10.5: // First quarter
+		return MoonPhaseInfo{"Premier quartier", "🌓"}
+	case phase < 14: // Waxing gibbous
+		return MoonPhaseInfo{"Gibbeuse croissante", "🌔"}
+	case phase < 17.5: // Full moon
+		return MoonPhaseInfo{"Pleine lune", "🌕"}
+	case phase < 21: // Waning gibbous
+		return MoonPhaseInfo{"Gibbeuse décroissante", "🌖"}
+	case phase < 24.5: // Last quarter
+		return MoonPhaseInfo{"Dernier quartier", "🌗"}
+	default: // Waning crescent
+		return MoonPhaseInfo{"Dernier croissant", "🌘"}
+	}
+}
+
+func calculateMoonIllumination(phase float64) float64 {
+	normalizedPhase := phase / 28.0
+
+	distanceFromFull := math.Abs(normalizedPhase - 0.5)
+	if normalizedPhase > 0.5 {
+		distanceFromFull = math.Abs(normalizedPhase - 1.5)
+	}
+
+	return 100 * (0.5 - distanceFromFull) * 2
 }
 
 func formatTime(t time.Time) string {
