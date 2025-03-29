@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"driffaud.fr/odin/pkg/types"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -20,6 +21,10 @@ var (
 	WeatherSectionStyle = lipgloss.NewStyle().
 				MarginTop(1).
 				MarginBottom(1)
+
+	tableStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240"))
 )
 
 func WeatherView(weather types.WeatherData, placeName string, width, height int) string {
@@ -100,8 +105,6 @@ func formatForecast(w types.WeatherData) string {
 		Foreground(lipgloss.Color("39")).
 		Render("Prévisions des prochaines heures:")
 
-	var forecast []string
-
 	now := time.Now()
 	startIndex := 0
 
@@ -118,22 +121,40 @@ func formatForecast(w types.WeatherData) string {
 		hoursToShow = len(w.Hourly.Time) - startIndex
 	}
 
-	// Get forecasts for the next 24 hours
+	columns := []table.Column{
+		{Title: "Heure", Width: 7},
+		{Title: "Temp", Width: 7},
+		{Title: "Pluie", Width: 7},
+		{Title: "Vent", Width: 9},
+	}
+
+	var rows []table.Row
 	for i := range hoursToShow {
 		idx := startIndex + i
 		timeStr := w.Hourly.Time[idx]
 		t, _ := time.Parse(TIME_FORMAT, timeStr)
 
-		forecast = append(forecast, fmt.Sprintf(
-			"%s: %.1f°C, Pluie: %d%%, Vent: %.1f km/h",
+		row := table.Row{
 			t.Format("15:04"),
-			w.Hourly.Temperature[idx],
-			w.Hourly.PrecipitationProbability[idx],
-			w.Hourly.WindSpeed[idx],
-		))
+			fmt.Sprintf("%.1f°C", w.Hourly.Temperature[idx]),
+			fmt.Sprintf("%d%%", w.Hourly.PrecipitationProbability[idx]),
+			fmt.Sprintf("%.1f km/h", w.Hourly.WindSpeed[idx]),
+		}
+		rows = append(rows, row)
 	}
 
-	dataText := WeatherInfoStyle.Render(lipgloss.JoinVertical(lipgloss.Left, forecast...))
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(false),
+		table.WithHeight(hoursToShow+1),
+	)
 
-	return WeatherSectionStyle.Render(lipgloss.JoinVertical(lipgloss.Left, title, dataText))
+	tableView := tableStyle.Render(t.View())
+
+	return WeatherSectionStyle.Render(lipgloss.JoinVertical(
+		lipgloss.Left,
+		title,
+		WeatherInfoStyle.Render(tableView),
+	))
 }
