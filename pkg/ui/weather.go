@@ -8,6 +8,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	// ISO8601 format
+	TIME_FORMAT = "2006-01-02T15:04"
+)
+
 var (
 	WeatherInfoStyle = lipgloss.NewStyle().
 				MarginLeft(4)
@@ -72,8 +77,8 @@ func formatSunriseSunset(w types.WeatherData) string {
 		Foreground(lipgloss.Color("220")).
 		Render("Lever et coucher du soleil (aujourd'hui):")
 
-	sunrise, _ := time.Parse(time.RFC3339, w.Daily.Sunrise[0])
-	sunset, _ := time.Parse(time.RFC3339, w.Daily.Sunset[0])
+	sunrise, _ := time.Parse(TIME_FORMAT, w.Daily.Sunrise[0])
+	sunset, _ := time.Parse(TIME_FORMAT, w.Daily.Sunset[0])
 
 	data := []string{
 		fmt.Sprintf("Lever du soleil: %s", sunrise.Format("15:04")),
@@ -100,7 +105,7 @@ func formatForecast(w types.WeatherData) string {
 	// Get forecasts for the next 24 hours with 3-hour intervals
 	for i := 0; i < 24; i += 3 {
 		timeStr := w.Hourly.Time[i]
-		t, _ := time.Parse(time.RFC3339, timeStr)
+		t, _ := time.Parse(TIME_FORMAT, timeStr)
 
 		forecast = append(forecast, fmt.Sprintf(
 			"%s: %.1f°C, Pluie: %d%%, Vent: %.1f km/h",
