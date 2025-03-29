@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/sj14/astral v0.2.2
+	github.com/sixdouglas/suncalc v0.0.0-20250114185126-291b1938b70c
 )
 
 require (

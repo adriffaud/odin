@@ -121,7 +121,7 @@ func formatAstroInfo(w weather.WeatherData) string {
 	lon := w.Longitude
 
 	sunInfo := weather.GetSunInfo(lat, lon)
-	moonInfo := weather.GetMoonInfo()
+	moonInfo := weather.GetMoonInfo(lat, lon)
 
 	sunInfoStr := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunInfo.Sunset),
@@ -130,15 +130,18 @@ func formatAstroInfo(w weather.WeatherData) string {
 		formatTime(sunInfo.Sunrise),
 	)
 
-	moonInfoStr := fmt.Sprintf("%s %s | Illumination : %.0f%%",
+	moonInfoStr := fmt.Sprintf("%s Lever : %s | Coucher: %s | Illumination : %.0f%% (%s)",
 		moonInfo.PhaseEmoji,
-		moonInfo.PhaseName,
+		formatTime(moonInfo.Moonrise),
+		formatTime(moonInfo.Moonset),
 		moonInfo.Illumination,
+		moonInfo.PhaseName,
 	)
 
 	return util.AstroInfoStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		sunInfoStr,
+		"",
 		moonInfoStr,
 	))
 }

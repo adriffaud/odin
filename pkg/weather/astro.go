@@ -1,10 +1,9 @@
 package weather
 
 import (
-	"math"
 	"time"
 
-	"github.com/sj14/astral/pkg/astral"
+	"github.com/sixdouglas/suncalc"
 )
 
 // SunInfo holds astronomical information about the sun
@@ -20,6 +19,8 @@ type MoonInfo struct {
 	PhaseName    string
 	PhaseEmoji   string
 	Illumination float64
+	Moonrise     time.Time
+	Moonset      time.Time
 }
 
 // MoonPhaseInfo contains the name and emoji for a moon phase
@@ -30,71 +31,59 @@ type moonPhaseInfo struct {
 
 // GetSunInfo calculates sun-related astronomical information
 func GetSunInfo(lat, lon float64) SunInfo {
-	observer := astral.Observer{
-		Latitude:  lat,
-		Longitude: lon,
-	}
-
 	today := time.Now()
 	tomorrow := today.AddDate(0, 0, 1)
 
-	dusk, _ := astral.Dusk(observer, today, astral.DepressionAstronomical)
-	dawn, _ := astral.Dawn(observer, tomorrow, astral.DepressionAstronomical)
-	sunset, _ := astral.Sunset(observer, today)
-	sunrise, _ := astral.Sunrise(observer, tomorrow)
+	observer := suncalc.Observer{Latitude: lat, Longitude: lon, Location: time.Local}
+	sunTimes := suncalc.GetTimesWithObserver(today, observer)
+	sunTimesTomorrow := suncalc.GetTimesWithObserver(tomorrow, observer)
 
 	return SunInfo{
-		Sunset:  sunset,
-		Dusk:    dusk,
-		Dawn:    dawn,
-		Sunrise: sunrise,
+		Sunset:  sunTimes[suncalc.Sunset].Value,
+		Dusk:    sunTimes[suncalc.NauticalDusk].Value,
+		Dawn:    sunTimesTomorrow[suncalc.NauticalDawn].Value,
+		Sunrise: sunTimesTomorrow[suncalc.Sunrise].Value,
 	}
 }
 
 // GetMoonInfo calculates moon-related astronomical information
-func GetMoonInfo() MoonInfo {
+func GetMoonInfo(lat, lon float64) MoonInfo {
 	today := time.Now()
-	phase := astral.MoonPhase(today)
+	// tomorrow := today.AddDate(0, 0, 1)
+
+	moonTimes := suncalc.GetMoonTimes(today, lat, lon, false)
+	// moonTimesTomorrow := suncalc.GetMoonTimesWithObserver(tomorrow, observer)
+	phase := suncalc.GetMoonIllumination(today)
 	phaseInfo := getMoonPhaseInfo(phase)
-	illumination := calculateMoonIllumination(phase)
+	illumination := phase.Fraction * 100
 
 	return MoonInfo{
 		PhaseName:    phaseInfo.name,
 		PhaseEmoji:   phaseInfo.emoji,
 		Illumination: illumination,
+		Moonrise:     moonTimes.Rise,
+		Moonset:      moonTimes.Set,
 	}
 }
 
 // getMoonPhaseInfo determines the moon phase name and emoji
-func getMoonPhaseInfo(phase float64) moonPhaseInfo {
+func getMoonPhaseInfo(phase suncalc.MoonIllumination) moonPhaseInfo {
 	switch {
-	case phase < 3.5: // New moon
+	case phase.Phase < 0.125 || phase.Phase >= 0.875: // New moon
 		return moonPhaseInfo{"Nouvelle lune", "🌑"}
-	case phase < 7: // Waxing crescent
+	case phase.Phase < 0.25: // Waxing crescent
 		return moonPhaseInfo{"Premier croissant", "🌒"}
-	case phase < 10.5: // First quarter
+	case phase.Phase < 0.375: // First quarter
 		return moonPhaseInfo{"Premier quartier", "🌓"}
-	case phase < 14: // Waxing gibbous
+	case phase.Phase < 0.5: // Waxing gibbous
 		return moonPhaseInfo{"Gibbeuse croissante", "🌔"}
-	case phase < 17.5: // Full moon
+	case phase.Phase < 0.625: // Full moon
 		return moonPhaseInfo{"Pleine lune", "🌕"}
-	case phase < 21: // Waning gibbous
+	case phase.Phase < 0.75: // Waning gibbous
 		return moonPhaseInfo{"Gibbeuse décroissante", "🌖"}
-	case phase < 24.5: // Last quarter
+	case phase.Phase < 0.875: // Last quarter
 		return moonPhaseInfo{"Dernier quartier", "🌗"}
 	default: // Waning crescent
 		return moonPhaseInfo{"Dernier croissant", "🌘"}
 	}
-}
-
-// calculateMoonIllumination calculates the percentage of moon illumination
-func calculateMoonIllumination(phase float64) float64 {
-	normalizedPhase := phase / 28.0
-
-	distanceFromFull := math.Abs(normalizedPhase - 0.5)
-	if normalizedPhase > 0.5 {
-		distanceFromFull = math.Abs(normalizedPhase - 1.5)
-	}
-
-	return 100 * (0.5 - distanceFromFull) * 2
 }
