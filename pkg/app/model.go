@@ -1,12 +1,7 @@
-package model
+package app
 
 import (
-	"fmt"
-
-	"driffaud.fr/odin/pkg/service"
-	"driffaud.fr/odin/pkg/types"
-	"driffaud.fr/odin/pkg/ui"
-
+	"driffaud.fr/odin/pkg/weather"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -30,8 +25,8 @@ type Model struct {
 	state         ApplicationState
 	input         textinput.Model
 	placesList    list.Model
-	weatherData   types.WeatherData
-	selectedPlace types.Place
+	weatherData   weather.WeatherData
+	selectedPlace weather.Place
 	spinner       spinner.Model
 	err           error
 }
@@ -44,8 +39,8 @@ func InitialModel() Model {
 
 	return Model{
 		state:      StateInput,
-		input:      ui.InitInput(),
-		placesList: ui.InitResultsList(),
+		input:      InitInput(),
+		placesList: InitResultsList(),
 		spinner:    s,
 		err:        nil,
 	}
@@ -86,15 +81,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.state = StateLoading
 				return m, tea.Batch(
-					service.SearchPlaces(query),
+					weather.SearchPlaces(query),
 					m.spinner.Tick,
 				)
 			} else if m.state == StateResults {
-				if i, ok := m.placesList.SelectedItem().(types.Place); ok {
+				if i, ok := m.placesList.SelectedItem().(weather.Place); ok {
 					m.selectedPlace = i
 					m.state = StateLoading
 					return m, tea.Batch(
-						service.GetWeather(i.Latitude, i.Longitude),
+						weather.GetWeather(i.Latitude, i.Longitude),
 						m.spinner.Tick,
 					)
 				}
@@ -102,17 +97,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case service.ErrMsg:
+	case weather.ErrMsg:
 		m.err = msg
 		m.state = StateInput
 		return m, nil
 
-	case types.SearchResultsMsg:
+	case weather.SearchResultsMsg:
 		m.state = StateResults
 		m.placesList.SetItems(msg)
 		return m, nil
 
-	case types.WeatherResultMsg:
+	case weather.WeatherResultMsg:
 		m.weatherData = msg.Data
 		m.state = StateWeather
 		return m, nil
@@ -152,36 +147,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the UI based on the current state
 func (m Model) View() string {
 	if m.err != nil {
-		errorMsg := fmt.Sprintf("Erreur: %s\n\nAppuyer sur une touche pour continuer...", m.err)
-		return ui.BorderStyle.
-			Width(m.width-2).
-			Height(m.height-2).
-			Align(lipgloss.Center, lipgloss.Center).
-			Render(errorMsg)
+		return RenderError(m.err, m.width, m.height)
 	}
-
-	loadingMessage := fmt.Sprintf("%s Chargement...", m.spinner.View())
-	loadingScreen := ui.BorderStyle.
-		Width(m.width-2).
-		Height(m.height-2).
-		Align(lipgloss.Center, lipgloss.Center).
-		Render(loadingMessage)
 
 	switch m.state {
 	case StateInput:
-		return ui.InputView(m.input, m.width, m.height)
+		return RenderInput(m.input, m.width, m.height)
 	case StateLoading:
-		return loadingScreen
+		return RenderLoading(m.spinner.View(), m.width, m.height)
 	case StateResults:
-		return ui.ResultsView(m.placesList, m.width, m.height)
+		return RenderResults(m.placesList, m.width, m.height)
 	case StateWeather:
 		placeName := m.selectedPlace.Name + " (" + m.selectedPlace.Address + ")"
-		weatherContent := ui.WeatherView(m.weatherData, placeName, m.width, m.height)
-		return ui.BorderStyle.
-			Width(m.width - 2).
-			Height(m.height - 2).
-			Render(weatherContent)
+		return RenderWeather(m.weatherData, placeName, m.width, m.height)
 	default:
-		return loadingScreen
+		return RenderLoading(m.spinner.View(), m.width, m.height)
 	}
 }

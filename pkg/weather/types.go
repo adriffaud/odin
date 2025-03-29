@@ -1,5 +1,37 @@
-package types
+package weather
 
+import "github.com/charmbracelet/bubbles/list"
+
+// Place represents a location with a name, address and coordinates
+type Place struct {
+	Name      string
+	Address   string
+	Latitude  float64
+	Longitude float64
+}
+
+func (p Place) Title() string       { return p.Name }
+func (p Place) Description() string { return p.Address }
+func (p Place) FilterValue() string { return p.Name }
+
+// PhotonResponse represents the API response from Photon
+type PhotonResponse struct {
+	Features []struct {
+		Properties struct {
+			Name     string `json:"name"`
+			City     string `json:"city,omitempty"`
+			State    string `json:"state,omitempty"`
+			Country  string `json:"country,omitempty"`
+			Street   string `json:"street,omitempty"`
+			PostCode string `json:"postCode,omitempty"`
+		} `json:"properties"`
+		Geometry struct {
+			Coordinates []float64 `json:"coordinates"`
+		} `json:"geometry"`
+	} `json:"features"`
+}
+
+// WeatherData represents the entire weather data response
 type WeatherData struct {
 	Current        CurrentWeather `json:"current"`
 	CurrentUnits   CurrentUnits   `json:"current_units"`
@@ -74,6 +106,10 @@ type DailyUnits struct {
 	Sunset  string `json:"sunset"`
 }
 
+// SearchResultsMsg carries search results back to the model
+type SearchResultsMsg []list.Item
+
+// WeatherResultMsg holds weather data for the update function
 type WeatherResultMsg struct {
 	Data WeatherData
 }

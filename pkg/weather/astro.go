@@ -1,4 +1,4 @@
-package astro
+package weather
 
 import (
 	"math"
