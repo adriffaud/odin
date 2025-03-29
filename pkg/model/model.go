@@ -53,7 +53,7 @@ func InitialModel() Model {
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(textinput.Blink, tea.SetWindowTitle("Odin"))
 }
 
 // Update handles state transitions based on messages
