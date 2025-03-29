@@ -61,17 +61,18 @@ func formatAstroInfo(w types.WeatherData) string {
 	}
 
 	today := time.Now()
+	tomorrow := today.AddDate(0, 0, 1)
 
-	dawn, _ := astral.Dawn(observer, today, astral.DepressionAstronomical)
 	dusk, _ := astral.Dusk(observer, today, astral.DepressionAstronomical)
-	sunrise, _ := astral.Sunrise(observer, today)
+	dawn, _ := astral.Dawn(observer, tomorrow, astral.DepressionAstronomical)
 	sunset, _ := astral.Sunset(observer, today)
+	sunrise, _ := astral.Sunrise(observer, tomorrow)
 
-	astroInfo := fmt.Sprintf("☀️ Lever: %s | Coucher: %s | Aube astro: %s | Crépuscule astro: %s",
-		formatTime(sunrise),
+	astroInfo := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunset),
-		formatTime(dawn),
 		formatTime(dusk),
+		formatTime(dawn),
+		formatTime(sunrise),
 	)
 
 	return astroInfoStyle.Render(astroInfo)
