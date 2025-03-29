@@ -12,11 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const (
-	// ISO8601 format
-	timeFormat = "2006-01-02T15:04"
-)
-
 // InitInput initializes the text input component
 func InitInput() textinput.Model {
 	ti := textinput.New()
@@ -126,6 +121,7 @@ func formatAstroInfo(w weather.WeatherData) string {
 
 	sunInfo := weather.GetSunInfo(lat, lon)
 	moonInfo := weather.GetMoonInfo(lat, lon)
+	nightForecast := weather.AnalyzeNightForecast(w, sunInfo.Sunset, sunInfo.Sunrise)
 
 	sunInfoStr := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunInfo.Sunset),
@@ -142,11 +138,45 @@ func formatAstroInfo(w weather.WeatherData) string {
 		moonInfo.PhaseName,
 	)
 
+	forecastTitle := "🔭 Conditions d'observation cette nuit:"
+
+	var observationTimeStr string
+	if nightForecast.BestObservation.TimeRange != nil {
+		observationTimeStr = fmt.Sprintf("Meilleure période: %dh à %dh (couverture nuageuse: %d%%)",
+			nightForecast.BestObservation.TimeRange.Start,
+			nightForecast.BestObservation.TimeRange.End,
+			nightForecast.BestObservation.LowestCloudCover)
+	} else {
+		observationTimeStr = fmt.Sprintf("Conditions défavorables (couverture nuageuse: %d%%)",
+			nightForecast.DisplayCloudCover)
+	}
+
+	weatherConditions := fmt.Sprintf("Temp: %d°C | Humidité: %d%% | Vent: %d km/h %s | Point de rosée: %d°C",
+		nightForecast.NightlyTemperature,
+		nightForecast.NightlyHumidity,
+		nightForecast.NightlyWindSpeed,
+		nightForecast.WindDirectionText,
+		nightForecast.NightlyDewPoint)
+
+	precipAndSeeing := fmt.Sprintf("Risque de précipitation: %d%% | Indice de seeing: %d/20",
+		nightForecast.MaxPrecipProbability,
+		nightForecast.SeeingIndex)
+
+	nightForecastStr := lipgloss.JoinVertical(
+		lipgloss.Left,
+		forecastTitle,
+		observationTimeStr,
+		weatherConditions,
+		precipAndSeeing,
+	)
+
 	return util.AstroInfoStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		sunInfoStr,
 		"",
 		moonInfoStr,
+		"",
+		nightForecastStr,
 	))
 }
 
@@ -168,7 +198,7 @@ func formatForecast(w weather.WeatherData) string {
 	startIndex := 0
 
 	for i, timeStr := range w.Hourly.Time {
-		t, _ := time.Parse(timeFormat, timeStr)
+		t, _ := time.Parse(util.ISO8601Format, timeStr)
 		if t.After(now) {
 			startIndex = i
 			break
@@ -194,7 +224,7 @@ func formatForecast(w weather.WeatherData) string {
 	for i := range hoursToShow {
 		idx := startIndex + i
 		timeStr := w.Hourly.Time[idx]
-		t, _ := time.Parse(timeFormat, timeStr)
+		t, _ := time.Parse(util.ISO8601Format, timeStr)
 
 		row := table.Row{
 			t.Format("15h"),
