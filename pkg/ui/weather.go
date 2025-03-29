@@ -111,7 +111,7 @@ func formatForecast(w types.WeatherData) string {
 	for i, timeStr := range w.Hourly.Time {
 		t, _ := time.Parse(TIME_FORMAT, timeStr)
 		if t.After(now) {
-			startIndex = i + 1
+			startIndex = i
 			break
 		}
 	}
@@ -123,9 +123,12 @@ func formatForecast(w types.WeatherData) string {
 
 	columns := []table.Column{
 		{Title: "Heure", Width: 7},
-		{Title: "Temp", Width: 7},
+		{Title: "Nuages", Width: 7},
 		{Title: "Pluie", Width: 7},
 		{Title: "Vent", Width: 9},
+		{Title: "Humidité", Width: 9},
+		{Title: "Temp", Width: 7},
+		{Title: "Rosée", Width: 7},
 	}
 
 	var rows []table.Row
@@ -135,10 +138,13 @@ func formatForecast(w types.WeatherData) string {
 		t, _ := time.Parse(TIME_FORMAT, timeStr)
 
 		row := table.Row{
-			t.Format("15:04"),
-			fmt.Sprintf("%.1f°C", w.Hourly.Temperature[idx]),
+			t.Format("15h"),
+			fmt.Sprintf("%d%%", w.Hourly.CloudCover[idx]),
 			fmt.Sprintf("%d%%", w.Hourly.PrecipitationProbability[idx]),
 			fmt.Sprintf("%.1f km/h", w.Hourly.WindSpeed[idx]),
+			fmt.Sprintf("%d%%", w.Hourly.RelativeHumidity[idx]),
+			fmt.Sprintf("%.1f°C", w.Hourly.Temperature[idx]),
+			fmt.Sprintf("%.1f°C", w.Hourly.DewPoint[idx]),
 		}
 		rows = append(rows, row)
 	}
