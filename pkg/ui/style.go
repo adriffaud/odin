@@ -9,8 +9,7 @@ var (
 
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("205")).
-			Bold(true).
-			MarginLeft(2)
+			Bold(true)
 
 	InputContainerStyle = lipgloss.NewStyle().
 				Padding(1, 2)
