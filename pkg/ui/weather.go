@@ -102,17 +102,34 @@ func formatForecast(w types.WeatherData) string {
 
 	var forecast []string
 
+	now := time.Now()
+	startIndex := 0
+
+	for i, timeStr := range w.Hourly.Time {
+		t, _ := time.Parse(TIME_FORMAT, timeStr)
+		if t.After(now) {
+			startIndex = i + 1
+			break
+		}
+	}
+
+	hoursToShow := 24
+	if startIndex+hoursToShow > len(w.Hourly.Time) {
+		hoursToShow = len(w.Hourly.Time) - startIndex
+	}
+
 	// Get forecasts for the next 24 hours
-	for i := range 24 {
-		timeStr := w.Hourly.Time[i]
+	for i := range hoursToShow {
+		idx := startIndex + i
+		timeStr := w.Hourly.Time[idx]
 		t, _ := time.Parse(TIME_FORMAT, timeStr)
 
 		forecast = append(forecast, fmt.Sprintf(
 			"%s: %.1f°C, Pluie: %d%%, Vent: %.1f km/h",
 			t.Format("15:04"),
-			w.Hourly.Temperature[i],
-			w.Hourly.PrecipitationProbability[i],
-			w.Hourly.WindSpeed[i],
+			w.Hourly.Temperature[idx],
+			w.Hourly.PrecipitationProbability[idx],
+			w.Hourly.WindSpeed[idx],
 		))
 	}
 
