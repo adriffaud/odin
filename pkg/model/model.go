@@ -160,16 +160,18 @@ func (m Model) View() string {
 			Render(errorMsg)
 	}
 
+	loadingMessage := fmt.Sprintf("%s Chargement...", m.spinner.View())
+	loadingScreen := ui.BorderStyle.
+		Width(m.width-2).
+		Height(m.height-2).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(loadingMessage)
+
 	switch m.state {
 	case StateInput:
 		return ui.InputView(m.input, m.width, m.height)
 	case StateLoading:
-		loadingMessage := fmt.Sprintf("%s Chargement...", m.spinner.View())
-		return ui.BorderStyle.
-			Width(m.width-2).
-			Height(m.height-2).
-			Align(lipgloss.Center, lipgloss.Center).
-			Render(loadingMessage)
+		return loadingScreen
 	case StateResults:
 		return ui.ResultsView(m.placesList, m.width, m.height)
 	case StateWeather:
@@ -180,10 +182,6 @@ func (m Model) View() string {
 			Height(m.height - 2).
 			Render(weatherContent)
 	default:
-		return ui.BorderStyle.
-			Width(m.width-4).
-			Height(m.height-4).
-			Align(lipgloss.Center, lipgloss.Center).
-			Render("Chargement...")
+		return loadingScreen
 	}
 }
