@@ -144,19 +144,26 @@ func RenderWeather(weather weather.WeatherData, placeName string, isFavorite boo
 
 	favoriteStatus := ""
 	if isFavorite {
-		favoriteStatus = "⭐️ (F3 pour retirer des favoris)"
+		favoriteStatus = "⭐️"
 	} else {
-		favoriteStatus = "❌ (F2 pour ajouter aux favoris)"
+		favoriteStatus = "❌"
 	}
 
 	title := fmt.Sprintf("Météo à %s %s", placeName, favoriteStatus)
 
+	helpText := "ESC : retourner au menu principal"
+	if isFavorite {
+		helpText = "F3 : retirer des favoris | " + helpText
+	} else {
+		helpText = "F2 : ajouter aux favoris | " + helpText
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
-		title,
+		util.TitleStyle.Render(title),
 		astroSection,
 		forecastSection,
-		"ESC : retourner au menu principal",
+		helpText,
 	)
 
 	return util.BorderStyle.
