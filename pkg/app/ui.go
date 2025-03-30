@@ -44,63 +44,6 @@ func InitResultsList() list.Model {
 	return l
 }
 
-// RenderPlaces renders the input screen
-func RenderPlaces(input textinput.Model, favoritesList list.Model, focusIndex int, width, height int) string {
-	title := util.TitleStyle.Render("Météo astronomique")
-
-	inputTitle := "Rechercher un lieu"
-	if focusIndex == 0 {
-		inputTitle = "> " + inputTitle + " <"
-	}
-	inputTitleStyled := lipgloss.NewStyle().Bold(true).Render(inputTitle)
-	inputField := lipgloss.NewStyle().
-		PaddingTop(1).
-		PaddingBottom(1).
-		Render(input.View())
-
-	var favoritesSection string
-
-	if len(favoritesList.Items()) > 0 {
-		favoritesTitle := "Favoris"
-		if focusIndex == 1 {
-			favoritesTitle = "> " + favoritesTitle + " <"
-		}
-
-		favoritesSection = lipgloss.JoinVertical(
-			lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Render(favoritesTitle),
-			favoritesList.View(),
-		)
-	} else {
-		favoritesSection = lipgloss.NewStyle().
-			Faint(true).
-			Render("Aucun lieu favori - Appuyez sur F2 pour en ajouter")
-	}
-
-	helpText := lipgloss.NewStyle().
-		Faint(true).
-		Render("Tab : changer de focus | Entrée : sélectionner | Esc : quitter")
-
-	inputSection := lipgloss.JoinVertical(lipgloss.Left,
-		inputTitleStyled,
-		inputField)
-
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		title,
-		"",
-		lipgloss.JoinHorizontal(lipgloss.Top, inputSection, favoritesSection),
-		"",
-		helpText,
-	)
-
-	return util.BorderStyle.
-		Width(width-2).
-		Height(height-2).
-		Align(lipgloss.Center, lipgloss.Center).
-		Render(content)
-}
-
 // RenderResults renders the results screen
 func RenderResults(resultsList list.Model, width, height int) string {
 	hint := "(entrer pour sélectionner, esc pour quitter)"

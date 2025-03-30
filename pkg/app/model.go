@@ -4,7 +4,6 @@ import (
 	"driffaud.fr/odin/pkg/weather"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -23,14 +22,12 @@ const (
 type Model struct {
 	width, height int
 	state         ApplicationState
-	input         textinput.Model
+	placeModel    weather.PlaceModel
 	placesList    list.Model
-	favoritesList list.Model
 	weatherData   weather.WeatherData
 	selectedPlace weather.Place
 	spinner       spinner.Model
-	favorites     *FavoritesStore
-	focusIndex    int // 0 for input, 1 for favorites list
+	favorites     *weather.FavoritesStore
 	err           error
 }
 
@@ -40,33 +37,29 @@ func InitialModel() Model {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	favStore, err := NewFavoritesStore()
+	favStore, err := weather.NewFavoritesStore()
 	if err != nil {
-		favStore = &FavoritesStore{}
+		favStore = &weather.FavoritesStore{}
 	}
 
-	var favoriteItems []list.Item
-	for _, fav := range favStore.Favorites {
-		favoriteItems = append(favoriteItems, fav)
-	}
-
-	favoritesList := InitFavoritesList(favoriteItems)
+	placeModel := weather.NewPlaceModel(favStore)
 
 	return Model{
-		state:         StatePlace,
-		input:         InitInput(),
-		placesList:    InitResultsList(),
-		favoritesList: favoritesList,
-		spinner:       s,
-		favorites:     favStore,
-		focusIndex:    0,
-		err:           nil,
+		state:      StatePlace,
+		placeModel: placeModel,
+		placesList: InitResultsList(),
+		spinner:    s,
+		favorites:  favStore,
+		err:        nil,
 	}
 }
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, tea.SetWindowTitle("Odin"))
+	return tea.Batch(
+		m.placeModel.Init(),
+		tea.SetWindowTitle("Odin"),
+	)
 }
 
 // Update handles state transitions based on messages
@@ -83,33 +76,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEsc:
 			if m.state == StateResults || m.state == StateWeather {
 				m.state = StatePlace
-				m.input.Focus()
-				m.focusIndex = 0
-				return m, nil
-			} else if m.state == StatePlace && m.focusIndex == 1 {
-				m.focusIndex = 0
-				m.input.Focus()
 				return m, nil
 			}
 			return m, tea.Quit
 
-		case tea.KeyTab:
-			if m.state == StatePlace {
-				if m.focusIndex == 0 && len(m.favorites.Favorites) > 0 {
-					m.focusIndex = 1
-					m.input.Blur()
-					return m, nil
-				} else if m.focusIndex == 1 {
-					m.focusIndex = 0
-					m.input.Focus()
-					return m, nil
-				}
-			}
-
 		case tea.KeyEnter:
 			if m.state == StatePlace {
-				if m.focusIndex == 0 {
-					query := m.input.Value()
+				focus := m.placeModel.GetFocusIndex()
+				if focus == 0 {
+					query := m.placeModel.GetQuery()
 					if query == "" {
 						return m, nil
 					}
@@ -118,12 +93,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						weather.SearchPlaces(query),
 						m.spinner.Tick,
 					)
-				} else if m.focusIndex == 1 {
-					if i, ok := m.favoritesList.SelectedItem().(weather.Place); ok {
-						m.selectedPlace = i
+				} else if focus == 1 {
+					if place, ok := m.placeModel.GetSelectedFavorite(); ok {
+						m.selectedPlace = place
 						m.state = StateLoading
 						return m, tea.Batch(
-							weather.GetWeather(i.Latitude, i.Longitude),
+							weather.GetWeather(place.Latitude, place.Longitude),
 							m.spinner.Tick,
 						)
 					}
@@ -143,28 +118,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyF2:
 			if m.state == StateWeather {
 				m.favorites.AddFavorite(m.selectedPlace)
-
-				// Update favorites list
-				var favoriteItems []list.Item
-				for _, fav := range m.favorites.Favorites {
-					favoriteItems = append(favoriteItems, fav)
-				}
-				m.favoritesList.SetItems(favoriteItems)
-
+				m.placeModel.UpdateFavorites()
 				return m, nil
 			}
 
 		case tea.KeyF3:
 			if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
 				m.favorites.RemoveFavorite(m.selectedPlace)
-
-				// Update favorites list
-				var favoriteItems []list.Item
-				for _, fav := range m.favorites.Favorites {
-					favoriteItems = append(favoriteItems, fav)
-				}
-				m.favoritesList.SetItems(favoriteItems)
-
+				m.placeModel.UpdateFavorites()
 				return m, nil
 			}
 		}
@@ -172,8 +133,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case weather.ErrMsg:
 		m.err = msg
 		m.state = StatePlace
-		m.focusIndex = 0
-		m.input.Focus()
 		return m, nil
 
 	case weather.SearchResultsMsg:
@@ -195,29 +154,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			h = 10
 		}
 		m.placesList.SetSize(msg.Width-4, h)
-
-		// Set size for favorites list to be about 1/3 of the screen height
-		favHeight := max((msg.Height/3)-4, 3)
-		m.favoritesList.SetSize(msg.Width-4, favHeight)
 	}
 
 	// Update active component based on state
 	if m.state == StatePlace {
-		if m.focusIndex == 0 {
-			m.input, cmd = m.input.Update(msg)
-			return m, cmd
-		} else {
-			var listCmd tea.Cmd
-			m.favoritesList, listCmd = m.favoritesList.Update(msg)
-			return m, listCmd
-		}
+		var placeCmd tea.Cmd
+		m.placeModel, placeCmd = m.placeModel.Update(msg)
+		return m, placeCmd
 	} else if m.state == StateLoading {
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
-
-		m.input, cmd = m.input.Update(msg)
-		cmds = append(cmds, cmd)
-
 		return m, tea.Batch(cmds...)
 	} else if m.state == StateResults {
 		var listCmd tea.Cmd
@@ -236,7 +182,7 @@ func (m Model) View() string {
 
 	switch m.state {
 	case StatePlace:
-		return RenderPlaces(m.input, m.favoritesList, m.focusIndex, m.width, m.height)
+		return m.placeModel.View()
 	case StateLoading:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	case StateResults:
