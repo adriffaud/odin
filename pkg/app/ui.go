@@ -22,6 +22,17 @@ func InitInput() textinput.Model {
 	return ti
 }
 
+// InitFavoritesList initializes the favorites list component
+func InitFavoritesList(items []list.Item) list.Model {
+	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
+	l.Title = "Lieux favoris"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.Styles.Title = util.TitleStyle
+	l.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
+	return l
+}
+
 // InitResults initializes the results list component
 func InitResultsList() list.Model {
 	l := list.New(nil, list.NewDefaultDelegate(), 0, 0)
@@ -33,27 +44,61 @@ func InitResultsList() list.Model {
 	return l
 }
 
-// RenderInput renders the input screen
-func RenderInput(input textinput.Model, width, height int) string {
-	title := util.TitleStyle.Render("Entrer un nom de lieu")
-	inputField := input.View()
-	hint := "(entrer pour rechercher, esc pour quitter)"
+// RenderPlaces renders the input screen
+func RenderPlaces(input textinput.Model, favoritesList list.Model, focusIndex int, width, height int) string {
+	title := util.TitleStyle.Render("Météo astronomique")
+
+	inputTitle := "Rechercher un lieu"
+	if focusIndex == 0 {
+		inputTitle = "> " + inputTitle + " <"
+	}
+	inputTitleStyled := lipgloss.NewStyle().Bold(true).Render(inputTitle)
+	inputField := lipgloss.NewStyle().
+		PaddingTop(1).
+		PaddingBottom(1).
+		Render(input.View())
+
+	var favoritesSection string
+
+	if len(favoritesList.Items()) > 0 {
+		favoritesTitle := "Favoris"
+		if focusIndex == 1 {
+			favoritesTitle = "> " + favoritesTitle + " <"
+		}
+
+		favoritesSection = lipgloss.JoinVertical(
+			lipgloss.Left,
+			lipgloss.NewStyle().Bold(true).Render(favoritesTitle),
+			favoritesList.View(),
+		)
+	} else {
+		favoritesSection = lipgloss.NewStyle().
+			Faint(true).
+			Render("Aucun lieu favori - Appuyez sur F2 pour en ajouter")
+	}
+
+	helpText := lipgloss.NewStyle().
+		Faint(true).
+		Render("Tab : changer de focus | Entrée : sélectionner | Esc : quitter")
+
+	inputSection := lipgloss.JoinVertical(lipgloss.Left,
+		inputTitleStyled,
+		inputField)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		title,
 		"",
-		inputField,
+		lipgloss.JoinHorizontal(lipgloss.Top, inputSection, favoritesSection),
 		"",
-		hint,
+		helpText,
 	)
 
-	styled := util.InputContainerStyle.Render(content)
 	return util.BorderStyle.
 		Width(width-2).
 		Height(height-2).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(styled)
+		Render(content)
 }
 
 // RenderResults renders the results screen
@@ -93,15 +138,25 @@ func RenderError(err error, width, height int) string {
 }
 
 // RenderWeather renders the weather screen
-func RenderWeather(weather weather.WeatherData, placeName string, width, height int) string {
+func RenderWeather(weather weather.WeatherData, placeName string, isFavorite bool, width, height int) string {
 	forecastSection := formatForecast(weather)
 	astroSection := formatAstroInfo(weather)
 
+	favoriteStatus := ""
+	if isFavorite {
+		favoriteStatus = "⭐️ (F3 pour retirer des favoris)"
+	} else {
+		favoriteStatus = "❌ (F2 pour ajouter aux favoris)"
+	}
+
+	title := fmt.Sprintf("Météo à %s %s", placeName, favoriteStatus)
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
-		util.TitleStyle.Render(fmt.Sprintf("Météo à %s", placeName)),
+		title,
 		astroSection,
 		forecastSection,
+		"ESC : retourner au menu principal",
 	)
 
 	return util.BorderStyle.

@@ -13,7 +13,7 @@ import (
 type ApplicationState string
 
 const (
-	StateInput   ApplicationState = "input"
+	StatePlace   ApplicationState = "place"
 	StateResults ApplicationState = "results"
 	StateWeather ApplicationState = "weather"
 	StateLoading ApplicationState = "loading"
@@ -25,9 +25,12 @@ type Model struct {
 	state         ApplicationState
 	input         textinput.Model
 	placesList    list.Model
+	favoritesList list.Model
 	weatherData   weather.WeatherData
 	selectedPlace weather.Place
 	spinner       spinner.Model
+	favorites     *FavoritesStore
+	focusIndex    int // 0 for input, 1 for favorites list
 	err           error
 }
 
@@ -37,12 +40,27 @@ func InitialModel() Model {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
+	favStore, err := NewFavoritesStore()
+	if err != nil {
+		favStore = &FavoritesStore{}
+	}
+
+	var favoriteItems []list.Item
+	for _, fav := range favStore.Favorites {
+		favoriteItems = append(favoriteItems, fav)
+	}
+
+	favoritesList := InitFavoritesList(favoriteItems)
+
 	return Model{
-		state:      StateInput,
-		input:      InitInput(),
-		placesList: InitResultsList(),
-		spinner:    s,
-		err:        nil,
+		state:         StatePlace,
+		input:         InitInput(),
+		placesList:    InitResultsList(),
+		favoritesList: favoritesList,
+		spinner:       s,
+		favorites:     favStore,
+		focusIndex:    0,
+		err:           nil,
 	}
 }
 
@@ -63,27 +81,53 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEsc:
-			if m.state == StateResults {
-				m.state = StateInput
+			if m.state == StateResults || m.state == StateWeather {
+				m.state = StatePlace
 				m.input.Focus()
+				m.focusIndex = 0
 				return m, nil
-			} else if m.state == StateWeather {
-				m.state = StateResults
+			} else if m.state == StatePlace && m.focusIndex == 1 {
+				m.focusIndex = 0
+				m.input.Focus()
 				return m, nil
 			}
 			return m, tea.Quit
 
-		case tea.KeyEnter:
-			if m.state == StateInput {
-				query := m.input.Value()
-				if query == "" {
+		case tea.KeyTab:
+			if m.state == StatePlace {
+				if m.focusIndex == 0 && len(m.favorites.Favorites) > 0 {
+					m.focusIndex = 1
+					m.input.Blur()
+					return m, nil
+				} else if m.focusIndex == 1 {
+					m.focusIndex = 0
+					m.input.Focus()
 					return m, nil
 				}
-				m.state = StateLoading
-				return m, tea.Batch(
-					weather.SearchPlaces(query),
-					m.spinner.Tick,
-				)
+			}
+
+		case tea.KeyEnter:
+			if m.state == StatePlace {
+				if m.focusIndex == 0 {
+					query := m.input.Value()
+					if query == "" {
+						return m, nil
+					}
+					m.state = StateLoading
+					return m, tea.Batch(
+						weather.SearchPlaces(query),
+						m.spinner.Tick,
+					)
+				} else if m.focusIndex == 1 {
+					if i, ok := m.favoritesList.SelectedItem().(weather.Place); ok {
+						m.selectedPlace = i
+						m.state = StateLoading
+						return m, tea.Batch(
+							weather.GetWeather(i.Latitude, i.Longitude),
+							m.spinner.Tick,
+						)
+					}
+				}
 			} else if m.state == StateResults {
 				if i, ok := m.placesList.SelectedItem().(weather.Place); ok {
 					m.selectedPlace = i
@@ -95,11 +139,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, tea.Quit
 			}
+
+		case tea.KeyF2:
+			if m.state == StateWeather {
+				m.favorites.AddFavorite(m.selectedPlace)
+
+				// Update favorites list
+				var favoriteItems []list.Item
+				for _, fav := range m.favorites.Favorites {
+					favoriteItems = append(favoriteItems, fav)
+				}
+				m.favoritesList.SetItems(favoriteItems)
+
+				return m, nil
+			}
+
+		case tea.KeyF3:
+			if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
+				m.favorites.RemoveFavorite(m.selectedPlace)
+
+				// Update favorites list
+				var favoriteItems []list.Item
+				for _, fav := range m.favorites.Favorites {
+					favoriteItems = append(favoriteItems, fav)
+				}
+				m.favoritesList.SetItems(favoriteItems)
+
+				return m, nil
+			}
 		}
 
 	case weather.ErrMsg:
 		m.err = msg
-		m.state = StateInput
+		m.state = StatePlace
+		m.focusIndex = 0
+		m.input.Focus()
 		return m, nil
 
 	case weather.SearchResultsMsg:
@@ -121,12 +195,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			h = 10
 		}
 		m.placesList.SetSize(msg.Width-4, h)
+
+		// Set size for favorites list to be about 1/3 of the screen height
+		favHeight := max((msg.Height/3)-4, 3)
+		m.favoritesList.SetSize(msg.Width-4, favHeight)
 	}
 
 	// Update active component based on state
-	if m.state == StateInput {
-		m.input, cmd = m.input.Update(msg)
-		return m, cmd
+	if m.state == StatePlace {
+		if m.focusIndex == 0 {
+			m.input, cmd = m.input.Update(msg)
+			return m, cmd
+		} else {
+			var listCmd tea.Cmd
+			m.favoritesList, listCmd = m.favoritesList.Update(msg)
+			return m, listCmd
+		}
 	} else if m.state == StateLoading {
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
@@ -151,15 +235,16 @@ func (m Model) View() string {
 	}
 
 	switch m.state {
-	case StateInput:
-		return RenderInput(m.input, m.width, m.height)
+	case StatePlace:
+		return RenderPlaces(m.input, m.favoritesList, m.focusIndex, m.width, m.height)
 	case StateLoading:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	case StateResults:
 		return RenderResults(m.placesList, m.width, m.height)
 	case StateWeather:
 		placeName := m.selectedPlace.Name + " (" + m.selectedPlace.Address + ")"
-		return RenderWeather(m.weatherData, placeName, m.width, m.height)
+		isFavorite := m.favorites.IsFavorite(m.selectedPlace)
+		return RenderWeather(m.weatherData, placeName, isFavorite, m.width, m.height)
 	default:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	}
