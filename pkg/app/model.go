@@ -2,6 +2,8 @@ package app
 
 import (
 	"driffaud.fr/odin/pkg/weather"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,6 +32,8 @@ type Model struct {
 	spinner       spinner.Model
 	favorites     *weather.FavoritesStore
 	err           error
+	keyMap        KeyMap
+	help          help.Model
 }
 
 // InitialModel returns the initial application model
@@ -44,6 +48,8 @@ func InitialModel() Model {
 	}
 
 	placeModel := weather.NewPlaceModel(favStore)
+	helpModel := help.New()
+	helpModel.ShowAll = false
 
 	return Model{
 		state:      StatePlace,
@@ -52,6 +58,8 @@ func InitialModel() Model {
 		spinner:    s,
 		favorites:  favStore,
 		err:        nil,
+		keyMap:     NewKeyMap(),
+		help:       helpModel,
 	}
 }
 
@@ -71,17 +79,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC:
+		switch {
+		case key.Matches(msg, m.keyMap.Quit):
 			return m, tea.Quit
 
-		case tea.KeyEsc:
+		case key.Matches(msg, m.keyMap.Back):
 			if m.state == StateResults || m.state == StateWeather {
 				m.state = StatePlace
 			}
 			return m, nil
 
-		case tea.KeyEnter:
+		case key.Matches(msg, m.keyMap.Enter):
 			if m.state == StatePlace {
 				focus := m.placeModel.GetFocusIndex()
 				if focus == 0 {
@@ -113,7 +121,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.spinner.Tick,
 					)
 				}
-				return m, tea.Quit
+			}
+
+		case key.Matches(msg, m.keyMap.AddFavorite):
+			if m.state == StateWeather && !m.favorites.IsFavorite(m.selectedPlace) {
+				m.favorites.AddFavorite(m.selectedPlace)
+				m.keyMap.UpdateAddRemoveFavoriteBindings(true)
+				m.placeModel.UpdateFavorites()
+				return m, nil
+			}
+
+		case key.Matches(msg, m.keyMap.RemoveFavorite):
+			if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
+				m.favorites.RemoveFavorite(m.selectedPlace)
+				m.keyMap.UpdateAddRemoveFavoriteBindings(false)
+				m.placeModel.UpdateFavorites()
+				return m, nil
 			}
 		}
 
@@ -166,6 +189,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, listCmd
 	case StateWeather:
 		var weatherCmd tea.Cmd
+		isFavorite := m.favorites.IsFavorite(m.selectedPlace)
+		m.keyMap.UpdateAddRemoveFavoriteBindings(isFavorite)
 		m.weatherModel, weatherCmd = m.weatherModel.Update(msg)
 		return m, weatherCmd
 	}
@@ -179,15 +204,19 @@ func (m Model) View() string {
 		return RenderError(m.err, m.width, m.height)
 	}
 
+	m.keyMap.SetState(m.state)
+	m.help.ShowAll = m.state == StateWeather
+	helpView := m.help.View(m.keyMap)
+
 	switch m.state {
 	case StatePlace:
-		return m.placeModel.View()
+		return m.placeModel.View(helpView)
 	case StateLoading:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	case StateResults:
-		return RenderResults(m.placesList, m.width, m.height)
+		return RenderResults(m.placesList, helpView, m.width, m.height)
 	case StateWeather:
-		return m.weatherModel.View()
+		return m.weatherModel.View(helpView)
 	default:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	}

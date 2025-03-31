@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"driffaud.fr/odin/pkg/util"
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -24,6 +25,8 @@ type WeatherModel struct {
 func NewWeatherModel(data WeatherData, place Place, favorites *FavoritesStore, width, height int) WeatherModel {
 	isFavorite := favorites.IsFavorite(place)
 	placeName := place.Name + " (" + place.Address + ")"
+	helpModel := help.New()
+	helpModel.ShowAll = true
 
 	return WeatherModel{
 		width:         width,
@@ -47,31 +50,13 @@ func (m WeatherModel) Update(msg tea.Msg) (WeatherModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyF2:
-			if !m.isFavorite {
-				m.favorites.AddFavorite(m.selectedPlace)
-				m.isFavorite = true
-				return m, nil
-			}
-		case tea.KeyF3:
-			if m.isFavorite {
-				m.favorites.RemoveFavorite(m.selectedPlace)
-				m.isFavorite = false
-				return m, nil
-			}
-		case tea.KeyEsc:
-			return m, backToPlaceCmd
-		}
 	}
 
 	return m, nil
 }
 
 // View renders the weather display
-func (m WeatherModel) View() string {
+func (m WeatherModel) View(helpView string) string {
 	forecastSection := formatForecast(m.weatherData)
 	astroSection := formatAstroInfo(m.weatherData)
 
@@ -84,25 +69,19 @@ func (m WeatherModel) View() string {
 
 	title := fmt.Sprintf("Météo à %s %s", m.placeName, favoriteStatus)
 
-	helpText := "ESC : retourner au menu principal"
-	if m.isFavorite {
-		helpText = "F3 : retirer des favoris | " + helpText
-	} else {
-		helpText = "F2 : ajouter aux favoris | " + helpText
-	}
-
 	content := lipgloss.JoinVertical(
-		lipgloss.Left,
+		lipgloss.Center,
 		util.TitleStyle.Render(title),
 		astroSection,
 		forecastSection,
-		helpText,
+		helpView,
 	)
 
 	return util.BorderStyle.
 		Width(m.width-2).
 		Height(m.height-2).
 		Padding(0, 2).
+		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
 }
 

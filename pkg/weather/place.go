@@ -2,44 +2,11 @@ package weather
 
 import (
 	"driffaud.fr/odin/pkg/util"
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
-
-type keyMap struct {
-	Tab   key.Binding
-	Enter key.Binding
-	Quit  key.Binding
-}
-
-func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.Enter, k.Quit}
-}
-
-func (k keyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Tab, k.Enter, k.Quit},
-	}
-}
-
-var keys = keyMap{
-	Tab: key.NewBinding(
-		key.WithKeys("tab"),
-		key.WithHelp("tab", "changer de focus"),
-	),
-	Enter: key.NewBinding(
-		key.WithKeys("enter"),
-		key.WithHelp("entrée", "sélectionner"),
-	),
-	Quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quitter"),
-	),
-}
 
 // PlaceModel manages the place search and favorites UI
 type PlaceModel struct {
@@ -48,8 +15,6 @@ type PlaceModel struct {
 	favoritesList list.Model
 	focusIndex    int // 0 for input, 1 for favorites list
 	favorites     *FavoritesStore
-	help          help.Model
-	keys          keyMap
 }
 
 // NewPlaceModel initializes a new place search model
@@ -77,16 +42,11 @@ func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
 		Bold(true)
 	favoritesList.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
 
-	help := help.New()
-	help.ShowAll = false
-
 	return PlaceModel{
 		input:         ti,
 		favoritesList: favoritesList,
 		favorites:     favorites,
 		focusIndex:    0,
-		help:          help,
-		keys:          keys,
 	}
 }
 
@@ -138,7 +98,7 @@ func (m PlaceModel) Update(msg tea.Msg) (PlaceModel, tea.Cmd) {
 }
 
 // View renders the place model UI
-func (m PlaceModel) View() string {
+func (m PlaceModel) View(helpView string) string {
 	title := util.TitleStyle.Render("Météo astronomique")
 
 	inputTitle := "Rechercher un lieu"
@@ -169,8 +129,6 @@ func (m PlaceModel) View() string {
 			Faint(true).
 			Render("Aucun lieu favori - Appuyez sur F2 pour en ajouter")
 	}
-
-	helpView := m.help.View(m.keys)
 
 	inputSection := lipgloss.JoinVertical(lipgloss.Left,
 		inputTitleStyled,

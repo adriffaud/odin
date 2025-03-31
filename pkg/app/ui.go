@@ -42,13 +42,12 @@ func InitResultsList() list.Model {
 }
 
 // RenderResults renders the results screen
-func RenderResults(resultsList list.Model, width, height int) string {
-	hint := "(entrer pour sélectionner, esc pour quitter)"
+func RenderResults(resultsList list.Model, helpView string, width, height int) string {
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		resultsList.View(),
 		"",
-		hint,
+		helpView,
 	)
 
 	return util.BorderStyle.
