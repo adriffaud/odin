@@ -171,10 +171,7 @@ func formatForecast(w WeatherData) string {
 		return ""
 	}
 
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("39")).
-		Render("Prévisions des prochaines heures:")
+	title := util.SubtitleStyle.Render("Prévisions des prochaines heures:")
 
 	now := time.Now()
 	startIndex := 0

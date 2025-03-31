@@ -37,9 +37,7 @@ func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
 	favoritesList.SetShowStatusBar(false)
 	favoritesList.SetFilteringEnabled(false)
 	favoritesList.SetShowHelp(false)
-	favoritesList.Styles.Title = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("205")).
-		Bold(true)
+	favoritesList.Styles.Title = util.SubtitleStyle
 	favoritesList.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
 
 	return PlaceModel{
@@ -105,7 +103,7 @@ func (m PlaceModel) View(helpView string) string {
 	if m.focusIndex == 0 {
 		inputTitle = "> " + inputTitle + " <"
 	}
-	inputTitleStyled := lipgloss.NewStyle().Bold(true).Render(inputTitle)
+	inputTitleStyled := util.SubtitleStyle.Render(inputTitle)
 	inputField := lipgloss.NewStyle().
 		PaddingTop(1).
 		PaddingBottom(1).
@@ -114,20 +112,15 @@ func (m PlaceModel) View(helpView string) string {
 	var favoritesSection string
 
 	if len(m.favoritesList.Items()) > 0 {
-		favoritesTitle := "Favoris"
 		if m.focusIndex == 1 {
-			favoritesTitle = "> " + favoritesTitle + " <"
+			m.favoritesList.Title = "> " + m.favoritesList.Title + " <"
 		}
 
-		favoritesSection = lipgloss.JoinVertical(
-			lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Render(favoritesTitle),
-			m.favoritesList.View(),
-		)
+		favoritesSection = m.favoritesList.View()
 	} else {
 		favoritesSection = lipgloss.NewStyle().
 			Faint(true).
-			Render("Aucun lieu favori - Appuyez sur F2 pour en ajouter")
+			Render("Aucun lieu favori - Appuyez sur F2 dans la vue météo pour en ajouter")
 	}
 
 	inputSection := lipgloss.JoinVertical(lipgloss.Left,

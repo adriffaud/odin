@@ -11,6 +11,10 @@ var (
 			Foreground(lipgloss.Color("205")).
 			Bold(true)
 
+	SubtitleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("39")).
+			Bold(true)
+
 	InputContainerStyle = lipgloss.NewStyle().
 				Padding(1, 2)
 
