@@ -11,19 +11,18 @@ import (
 )
 
 type keyMap struct {
-	Tab       key.Binding
-	Enter     key.Binding
-	Escape    key.Binding
-	AddToFavs key.Binding
+	Tab   key.Binding
+	Enter key.Binding
+	Quit  key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.Enter, k.Escape, k.AddToFavs}
+	return []key.Binding{k.Tab, k.Enter, k.Quit}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Tab, k.Enter, k.Escape, k.AddToFavs},
+		{k.Tab, k.Enter, k.Quit},
 	}
 }
 
@@ -36,13 +35,9 @@ var keys = keyMap{
 		key.WithKeys("enter"),
 		key.WithHelp("entrée", "sélectionner"),
 	),
-	Escape: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "quitter"),
-	),
-	AddToFavs: key.NewBinding(
-		key.WithKeys("f2"),
-		key.WithHelp("f2", "ajouter aux favoris"),
+	Quit: key.NewBinding(
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quitter"),
 	),
 }
 

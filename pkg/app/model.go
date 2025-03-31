@@ -78,9 +78,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEsc:
 			if m.state == StateResults || m.state == StateWeather {
 				m.state = StatePlace
-				return m, nil
 			}
-			return m, tea.Quit
+			return m, nil
 
 		case tea.KeyEnter:
 			if m.state == StatePlace {
