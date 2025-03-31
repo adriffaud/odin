@@ -144,10 +144,7 @@ func (m PlaceModel) Update(msg tea.Msg) (PlaceModel, tea.Cmd) {
 
 // View renders the place model UI
 func (m PlaceModel) View() string {
-	title := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("205")).
-		Bold(true).
-		Render("Météo astronomique")
+	title := util.TitleStyle.Render("Météo astronomique")
 
 	inputTitle := "Rechercher un lieu"
 	if m.focusIndex == 0 {
