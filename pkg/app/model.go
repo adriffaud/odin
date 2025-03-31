@@ -23,6 +23,7 @@ type Model struct {
 	width, height int
 	state         ApplicationState
 	placeModel    weather.PlaceModel
+	weatherModel  weather.WeatherModel
 	placesList    list.Model
 	weatherData   weather.WeatherData
 	selectedPlace weather.Place
@@ -58,6 +59,7 @@ func InitialModel() Model {
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.placeModel.Init(),
+		m.weatherModel.Init(),
 		tea.SetWindowTitle("Odin"),
 	)
 }
@@ -114,20 +116,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, tea.Quit
 			}
-
-		case tea.KeyF2:
-			if m.state == StateWeather {
-				m.favorites.AddFavorite(m.selectedPlace)
-				m.placeModel.UpdateFavorites()
-				return m, nil
-			}
-
-		case tea.KeyF3:
-			if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
-				m.favorites.RemoveFavorite(m.selectedPlace)
-				m.placeModel.UpdateFavorites()
-				return m, nil
-			}
 		}
 
 	case weather.ErrMsg:
@@ -143,7 +131,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case weather.WeatherResultMsg:
 		m.weatherData = msg.Data
 		m.state = StateWeather
-		return m, nil
+		m.weatherModel = weather.NewWeatherModel(
+			msg.Data,
+			m.selectedPlace,
+			m.favorites,
+			m.width,
+			m.height,
+		)
+		return m, m.weatherModel.Init()
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -157,18 +152,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Update active component based on state
-	if m.state == StatePlace {
+	switch m.state {
+	case StatePlace:
 		var placeCmd tea.Cmd
 		m.placeModel, placeCmd = m.placeModel.Update(msg)
 		return m, placeCmd
-	} else if m.state == StateLoading {
+	case StateLoading:
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
-	} else if m.state == StateResults {
+	case StateResults:
 		var listCmd tea.Cmd
 		m.placesList, listCmd = m.placesList.Update(msg)
 		return m, listCmd
+	case StateWeather:
+		var weatherCmd tea.Cmd
+		m.weatherModel, weatherCmd = m.weatherModel.Update(msg)
+		return m, weatherCmd
 	}
 
 	return m, nil
@@ -188,9 +188,7 @@ func (m Model) View() string {
 	case StateResults:
 		return RenderResults(m.placesList, m.width, m.height)
 	case StateWeather:
-		placeName := m.selectedPlace.Name + " (" + m.selectedPlace.Address + ")"
-		isFavorite := m.favorites.IsFavorite(m.selectedPlace)
-		return RenderWeather(m.weatherData, placeName, isFavorite, m.width, m.height)
+		return m.weatherModel.View()
 	default:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	}
