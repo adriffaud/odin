@@ -2,11 +2,49 @@ package weather
 
 import (
 	"driffaud.fr/odin/pkg/util"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+type keyMap struct {
+	Tab       key.Binding
+	Enter     key.Binding
+	Escape    key.Binding
+	AddToFavs key.Binding
+}
+
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.Enter, k.Escape, k.AddToFavs}
+}
+
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Tab, k.Enter, k.Escape, k.AddToFavs},
+	}
+}
+
+var keys = keyMap{
+	Tab: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "changer de focus"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("entrée", "sélectionner"),
+	),
+	Escape: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "quitter"),
+	),
+	AddToFavs: key.NewBinding(
+		key.WithKeys("f2"),
+		key.WithHelp("f2", "ajouter aux favoris"),
+	),
+}
 
 // PlaceModel manages the place search and favorites UI
 type PlaceModel struct {
@@ -15,6 +53,8 @@ type PlaceModel struct {
 	favoritesList list.Model
 	focusIndex    int // 0 for input, 1 for favorites list
 	favorites     *FavoritesStore
+	help          help.Model
+	keys          keyMap
 }
 
 // NewPlaceModel initializes a new place search model
@@ -36,16 +76,22 @@ func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
 	favoritesList.Title = "Lieux favoris"
 	favoritesList.SetShowStatusBar(false)
 	favoritesList.SetFilteringEnabled(false)
+	favoritesList.SetShowHelp(false)
 	favoritesList.Styles.Title = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("205")).
 		Bold(true)
 	favoritesList.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
+
+	help := help.New()
+	help.ShowAll = false
 
 	return PlaceModel{
 		input:         ti,
 		favoritesList: favoritesList,
 		favorites:     favorites,
 		focusIndex:    0,
+		help:          help,
+		keys:          keys,
 	}
 }
 
@@ -64,7 +110,7 @@ func (m PlaceModel) Update(msg tea.Msg) (PlaceModel, tea.Cmd) {
 		m.height = msg.Height
 
 		// Set size for favorites list to be about 1/3 of the screen height
-		favHeight := max((msg.Height/3)-4, 3)
+		favHeight := max((msg.Height/2)-4, 3)
 		m.favoritesList.SetSize(msg.Width-4, favHeight)
 
 	case tea.KeyMsg:
@@ -132,9 +178,7 @@ func (m PlaceModel) View() string {
 			Render("Aucun lieu favori - Appuyez sur F2 pour en ajouter")
 	}
 
-	helpText := lipgloss.NewStyle().
-		Faint(true).
-		Render("Tab : changer de focus | Entrée : sélectionner | Esc : quitter")
+	helpView := m.help.View(m.keys)
 
 	inputSection := lipgloss.JoinVertical(lipgloss.Left,
 		inputTitleStyled,
@@ -146,7 +190,7 @@ func (m PlaceModel) View() string {
 		"",
 		lipgloss.JoinHorizontal(lipgloss.Top, inputSection, favoritesSection),
 		"",
-		helpText,
+		helpView,
 	)
 
 	return util.BorderStyle.
