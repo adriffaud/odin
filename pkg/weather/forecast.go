@@ -21,6 +21,8 @@ type ForecastHour struct {
 	Humidity                 int
 	DewPoint                 float64
 	PrecipitationProbability int
+	Rating                   int
+	Seeing                   int
 }
 
 // BestObservationInfo represents the best time range for astronomical observation
@@ -96,6 +98,9 @@ func GenerateForecastData(data WeatherData) []ForecastHour {
 			precipProb = data.Hourly.PrecipitationProbability[i]
 		}
 
+		seeingIndex := CalculateSeeingIndex(temp, dewPoint, windSpeed, humidity)
+		ratingIndex := CalculateSkyQualityIndex(clouds, humidity, windSpeed, temp, dewPoint, seeingIndex)
+
 		forecast[i] = ForecastHour{
 			DateTime:                 dateTime,
 			Hour:                     dateTime.Hour(),
@@ -109,6 +114,8 @@ func GenerateForecastData(data WeatherData) []ForecastHour {
 			Humidity:                 humidity,
 			DewPoint:                 dewPoint,
 			PrecipitationProbability: precipProb,
+			Rating:                   ratingIndex,
+			Seeing:                   seeingIndex,
 		}
 	}
 
@@ -260,9 +267,33 @@ func CalculateSeeingIndex(temperature, dewPoint, windSpeed float64, humidity int
 	humidityFactor := math.Max(0.1, math.Min(1, 1-float64(humidity)/100))
 	dewPointFactor := math.Max(0.1, math.Min(1, (10-tempDiff)/10))
 
-	weightedIndex := tempWeight*tempFactor + windWeight*windFactor + humidityWeight*humidityFactor + dewPointWeight*dewPointFactor
+	weightedIndex := tempWeight*tempFactor +
+		windWeight*windFactor +
+		humidityWeight*humidityFactor +
+		dewPointWeight*dewPointFactor
 
 	return int(math.Round(math.Max(1, weightedIndex*5)))
+}
+
+func CalculateSkyQualityIndex(clouds, humidity int, windSpeed, temp, dewPoint float64, seeing int) int {
+	tempDiff := math.Abs(temp - 15)
+	dewPointDiff := math.Abs(temp - dewPoint)
+
+	cloudsFactor := 1 - clouds/15
+	humidityFactor := 5 - humidity/20
+	windFactor := 5 - windSpeed/10
+	tempFactor := 5 - tempDiff/10
+	dewPointFactor := 5 - dewPointDiff/5
+	seeingFactor := 5 - seeing
+
+	skyQualityIndex := 0.5*float64(cloudsFactor) +
+		0.2*float64(humidityFactor) +
+		0.2*windFactor +
+		0.1*tempFactor +
+		0.15*dewPointFactor +
+		0.5*float64(seeingFactor)
+
+	return int(math.Max(0, math.Min(5, skyQualityIndex)))
 }
 
 // GenerateSeeingIndexForNight calculates the average seeing index for a night
