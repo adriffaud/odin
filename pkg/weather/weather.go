@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"driffaud.fr/odin/pkg/util"
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -25,8 +24,6 @@ type WeatherModel struct {
 func NewWeatherModel(data WeatherData, place Place, favorites *FavoritesStore, width, height int) WeatherModel {
 	isFavorite := favorites.IsFavorite(place)
 	placeName := place.Name + " (" + place.Address + ")"
-	helpModel := help.New()
-	helpModel.ShowAll = true
 
 	return WeatherModel{
 		width:         width,
@@ -83,14 +80,6 @@ func (m WeatherModel) View(helpView string) string {
 		Padding(0, 2).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
-}
-
-// BackToPlaceMsg is used to signal a return to the place view
-type BackToPlaceMsg struct{}
-
-// backToPlaceCmd creates a command to go back to the place view
-func backToPlaceCmd() tea.Msg {
-	return BackToPlaceMsg{}
 }
 
 func formatAstroInfo(w WeatherData) string {
