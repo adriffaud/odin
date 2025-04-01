@@ -19,14 +19,12 @@ type PlaceModel struct {
 
 // NewPlaceModel initializes a new place search model
 func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
-	// Initialize text input
 	ti := textinput.New()
 	ti.Placeholder = "Entrer un nom de lieu"
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 40
 
-	// Initialize favorites list
 	var favoriteItems []list.Item
 	for _, fav := range favorites.Favorites {
 		favoriteItems = append(favoriteItems, fav)
@@ -38,7 +36,6 @@ func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
 	favoritesList.SetFilteringEnabled(false)
 	favoritesList.SetShowHelp(false)
 	favoritesList.Styles.Title = util.SubtitleStyle
-	favoritesList.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
 
 	return PlaceModel{
 		input:         ti,

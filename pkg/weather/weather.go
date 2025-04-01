@@ -58,21 +58,12 @@ func (m WeatherModel) View(helpView string) string {
 		return util.BorderStyle.
 			Width(m.width-2).
 			Height(m.height-2).
-			Padding(0, 2).
+			Padding(0, 1).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render("No weather data available")
 	}
 
 	forecastData := GenerateForecastData(m.weatherData)
-
-	favoriteStatus := ""
-	if m.isFavorite {
-		favoriteStatus = "⭐️"
-	} else {
-		favoriteStatus = "❌"
-	}
-
-	title := fmt.Sprintf("Météo à %s %s", m.placeName, favoriteStatus)
 
 	astroSection := formatAstroInfo(forecastData, m.weatherData.Latitude, m.weatherData.Longitude)
 	var forecastSection string
@@ -82,7 +73,7 @@ func (m WeatherModel) View(helpView string) string {
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
-		util.TitleStyle.Render(title),
+		m.headerView(),
 		astroSection,
 		forecastSection,
 		helpView,
@@ -91,9 +82,26 @@ func (m WeatherModel) View(helpView string) string {
 	return util.BorderStyle.
 		Width(m.width-2).
 		Height(m.height-2).
-		Padding(0, 2).
+		Padding(0, 1).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
+}
+
+func (m WeatherModel) headerView() string {
+	favoriteStatus := ""
+	if m.isFavorite {
+		favoriteStatus = "⭐️"
+	} else {
+		favoriteStatus = "❌"
+	}
+
+	title := fmt.Sprintf("Météo à %s %s", m.placeName, favoriteStatus)
+
+	return util.TitleStyle.Render(title)
+}
+
+func formatTime(t time.Time) string {
+	return t.Format("15:04")
 }
 
 func formatAstroInfo(forecastData []ForecastHour, lat, lon float64) string {
@@ -156,10 +164,6 @@ func formatAstroInfo(forecastData []ForecastHour, lat, lon float64) string {
 		"",
 		nightForecastStr,
 	))
-}
-
-func formatTime(t time.Time) string {
-	return t.Format("15:04")
 }
 
 func formatForecast(forecastData []ForecastHour) string {
