@@ -129,7 +129,7 @@ func formatAstroInfo(w WeatherData) string {
 		nightForecast.WindDirectionText,
 		nightForecast.NightlyDewPoint)
 
-	precipAndSeeing := fmt.Sprintf("Risque de précipitation: %d%% | Indice de seeing: %d/20",
+	precipAndSeeing := fmt.Sprintf("Risque de précipitation: %d%% | Indice de seeing: %d/5",
 		nightForecast.MaxPrecipProbability,
 		nightForecast.SeeingIndex)
 

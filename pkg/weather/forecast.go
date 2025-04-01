@@ -248,24 +248,21 @@ func CalculateExtremeCloudCover(data []ForecastHour) int {
 }
 
 // CalculateSeeingIndex calculates seeing conditions for astronomical observation
-func CalculateSeeingIndex(clouds int, temperature, windSpeed float64, humidity int, dewPoint float64) int {
-	// This is a simplified version - you might want to adjust the formula
-	// based on your specific requirements
+func CalculateSeeingIndex(temperature, dewPoint, windSpeed float64, humidity int) int {
+	tempWeight := 0.25
+	windWeight := 0.4
+	humidityWeight := 0.15
+	dewPointWeight := 0.2
 
-	// Lower values are better for each parameter (except for temperature which is more complex)
-	cloudFactor := (100 - clouds) / 20               // 0-5 points for cloud cover
-	windFactor := (10 - math.Min(windSpeed, 10)) / 2 // 0-5 points for wind (less wind is better)
+	tempDiff := math.Abs(temperature - dewPoint)
+	tempFactor := math.Max(0.1, math.Min(1, (15-tempDiff)/15))
+	windFactor := math.Max(0.1, math.Min(1, 1-windSpeed/25))
+	humidityFactor := math.Max(0.1, math.Min(1, 1-float64(humidity)/100))
+	dewPointFactor := math.Max(0.1, math.Min(1, (10-tempDiff)/10))
 
-	// Humidity factor (lower is better for visibility)
-	humidityFactor := (100 - float64(humidity)) / 20 // 0-5 points
+	weightedIndex := tempWeight*tempFactor + windWeight*windFactor + humidityWeight*humidityFactor + dewPointWeight*dewPointFactor
 
-	// Calculate temperature stability factor
-	tempStabilityFactor := 5 - math.Min(math.Abs(temperature-dewPoint), 5) // 0-5 points
-
-	// Calculate the total seeing index (0-20 scale)
-	seeingIndex := float64(cloudFactor) + windFactor + humidityFactor + tempStabilityFactor
-
-	return int(math.Round(seeingIndex))
+	return int(math.Round(math.Max(1, weightedIndex*5)))
 }
 
 // GenerateSeeingIndexForNight calculates the average seeing index for a night
@@ -279,11 +276,10 @@ func GenerateSeeingIndexForNight(nightForecastData []ForecastHour) int {
 
 	for _, hour := range nightForecastData {
 		seeingIndex := CalculateSeeingIndex(
-			hour.Clouds,
 			hour.Temperature,
+			hour.DewPoint,
 			hour.WindSpeed,
 			hour.Humidity,
-			hour.DewPoint,
 		)
 		totalIndex += float64(seeingIndex)
 		count++
