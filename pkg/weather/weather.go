@@ -54,8 +54,16 @@ func (m WeatherModel) Update(msg tea.Msg) (WeatherModel, tea.Cmd) {
 
 // View renders the weather display
 func (m WeatherModel) View(helpView string) string {
-	forecastSection := formatForecast(m.weatherData)
-	astroSection := formatAstroInfo(m.weatherData)
+	if len(m.weatherData.Hourly.Time) == 0 {
+		return util.BorderStyle.
+			Width(m.width-2).
+			Height(m.height-2).
+			Padding(0, 2).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render("No weather data available")
+	}
+
+	forecastData := GenerateForecastData(m.weatherData)
 
 	favoriteStatus := ""
 	if m.isFavorite {
@@ -65,6 +73,12 @@ func (m WeatherModel) View(helpView string) string {
 	}
 
 	title := fmt.Sprintf("Météo à %s %s", m.placeName, favoriteStatus)
+
+	astroSection := formatAstroInfo(forecastData, m.weatherData.Latitude, m.weatherData.Longitude)
+	var forecastSection string
+	if len(m.weatherData.Hourly.Time) >= 24 {
+		forecastSection = formatForecast(forecastData)
+	}
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
@@ -82,17 +96,10 @@ func (m WeatherModel) View(helpView string) string {
 		Render(content)
 }
 
-func formatAstroInfo(w WeatherData) string {
-	if len(w.Hourly.Time) == 0 {
-		return ""
-	}
-
-	lat := w.Latitude
-	lon := w.Longitude
-
+func formatAstroInfo(forecastData []ForecastHour, lat, lon float64) string {
 	sunInfo := GetSunInfo(lat, lon)
 	moonInfo := GetMoonInfo(lat, lon)
-	nightForecast := AnalyzeNightForecast(w, sunInfo.Sunset, sunInfo.Sunrise)
+	nightForecast := AnalyzeNightForecast(forecastData, sunInfo.Sunset, sunInfo.Sunrise)
 
 	sunInfoStr := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunInfo.Sunset),
@@ -155,33 +162,29 @@ func formatTime(t time.Time) string {
 	return t.Format("15:04")
 }
 
-func formatForecast(w WeatherData) string {
-	if len(w.Hourly.Time) < 24 {
-		return ""
-	}
-
+func formatForecast(forecastData []ForecastHour) string {
 	title := util.SubtitleStyle.Render("Prévisions des prochaines heures:")
 
 	now := time.Now()
 	startIndex := 0
 
-	for i, timeStr := range w.Hourly.Time {
-		t, _ := time.Parse(util.ISO8601Format, timeStr)
-		if t.After(now) {
+	for i, hour := range forecastData {
+		if hour.DateTime.After(now) {
 			startIndex = i
 			break
 		}
 	}
 
 	hoursToShow := 24
-	if startIndex+hoursToShow > len(w.Hourly.Time) {
-		hoursToShow = len(w.Hourly.Time) - startIndex
+	if startIndex+hoursToShow > len(forecastData) {
+		hoursToShow = len(forecastData) - startIndex
 	}
 
 	columns := []table.Column{
 		{Title: "Heure", Width: 7},
 		{Title: "Nuages", Width: 7},
 		{Title: "Pluie", Width: 7},
+		{Title: "Seeing", Width: 7},
 		{Title: "Vent", Width: 9},
 		{Title: "Humidité", Width: 9},
 		{Title: "Temp", Width: 7},
@@ -191,17 +194,17 @@ func formatForecast(w WeatherData) string {
 	var rows []table.Row
 	for i := range hoursToShow {
 		idx := startIndex + i
-		timeStr := w.Hourly.Time[idx]
-		t, _ := time.Parse(util.ISO8601Format, timeStr)
+		hour := forecastData[idx]
 
 		row := table.Row{
-			t.Format("15h"),
-			fmt.Sprintf("%d%%", w.Hourly.CloudCover[idx]),
-			fmt.Sprintf("%d%%", w.Hourly.PrecipitationProbability[idx]),
-			fmt.Sprintf("%.1f km/h", w.Hourly.WindSpeed[idx]),
-			fmt.Sprintf("%d%%", w.Hourly.RelativeHumidity[idx]),
-			fmt.Sprintf("%.1f°C", w.Hourly.Temperature[idx]),
-			fmt.Sprintf("%.1f°C", w.Hourly.DewPoint[idx]),
+			hour.DateTime.Format("15h"),
+			fmt.Sprintf("%d%%", hour.Clouds),
+			fmt.Sprintf("%d%%", hour.PrecipitationProbability),
+			fmt.Sprintf("%d/5", hour.Seeing),
+			fmt.Sprintf("%.1f km/h", hour.WindSpeed),
+			fmt.Sprintf("%d%%", hour.Humidity),
+			fmt.Sprintf("%.1f°C", hour.Temperature),
+			fmt.Sprintf("%.1f°C", hour.DewPoint),
 		}
 		rows = append(rows, row)
 	}

@@ -98,8 +98,8 @@ func GenerateForecastData(data WeatherData) []ForecastHour {
 			precipProb = data.Hourly.PrecipitationProbability[i]
 		}
 
-		seeingIndex := CalculateSeeingIndex(temp, dewPoint, windSpeed, humidity)
-		ratingIndex := CalculateSkyQualityIndex(clouds, humidity, windSpeed, temp, dewPoint, seeingIndex)
+		seeingIndex := calculateSeeingIndex(temp, dewPoint, windSpeed, humidity)
+		ratingIndex := calculateSkyQualityIndex(clouds, humidity, windSpeed, temp, dewPoint, seeingIndex)
 
 		forecast[i] = ForecastHour{
 			DateTime:                 dateTime,
@@ -122,8 +122,49 @@ func GenerateForecastData(data WeatherData) []ForecastHour {
 	return forecast
 }
 
-// FilterNightForecastData filters forecast data for the astronomical night
-func FilterNightForecastData(forecastData []ForecastHour, sunsetTime, sunriseTime time.Time) []ForecastHour {
+// AnalyzeNightForecast generates a complete night forecast analysis for astronomical observation
+func AnalyzeNightForecast(forecastData []ForecastHour, sunsetTime, sunriseTime time.Time) NightForecast {
+	const goodCloudCoverThreshold = 30
+	const consecutiveGoodHoursRequired = 2
+
+	nightForecastData := filterNightForecastData(forecastData, sunsetTime, sunriseTime)
+
+	bestObservationInfo := getBestObservationTimeRange(
+		nightForecastData,
+		goodCloudCoverThreshold,
+		consecutiveGoodHoursRequired,
+	)
+	extremeCloudCover := calculateExtremeCloudCover(nightForecastData)
+	displayCloudCover := extremeCloudCover
+	if bestObservationInfo.TimeRange != nil {
+		displayCloudCover = bestObservationInfo.LowestCloudCover
+	}
+	nightlyTemperature := int(math.Floor(calculateNightlyAverage(nightForecastData, "temperature")))
+	nightlyHumidity := int(math.Floor(calculateNightlyAverage(nightForecastData, "humidity")))
+	nightlyWindSpeed := int(math.Floor(calculateNightlyAverage(nightForecastData, "windSpeed")))
+	nightlyDewPoint := int(math.Floor(calculateNightlyAverage(nightForecastData, "dewPoint")))
+	maxPrecipProbability := maxPrecipitationProbability(nightForecastData)
+	seeingIndex := generateSeeingIndexForNight(nightForecastData)
+	nightlyWindDirection := calculateWindDirectionAverage(nightForecastData)
+	windDirectionText := convertWindDirectionToNSEW(nightlyWindDirection)
+
+	return NightForecast{
+		BestObservation:      bestObservationInfo,
+		ExtremeCloudCover:    extremeCloudCover,
+		DisplayCloudCover:    displayCloudCover,
+		NightlyTemperature:   nightlyTemperature,
+		NightlyHumidity:      nightlyHumidity,
+		NightlyWindSpeed:     nightlyWindSpeed,
+		NightlyDewPoint:      nightlyDewPoint,
+		MaxPrecipProbability: maxPrecipProbability,
+		NightlyWindDirection: nightlyWindDirection,
+		WindDirectionText:    windDirectionText,
+		SeeingIndex:          seeingIndex,
+	}
+}
+
+// filterNightForecastData filters forecast data for the astronomical night
+func filterNightForecastData(forecastData []ForecastHour, sunsetTime, sunriseTime time.Time) []ForecastHour {
 	var nightForecast []ForecastHour
 
 	for _, hour := range forecastData {
@@ -136,8 +177,8 @@ func FilterNightForecastData(forecastData []ForecastHour, sunsetTime, sunriseTim
 	return nightForecast
 }
 
-// GetBestObservationTimeRange finds the best observation time range within tonight's astronomical night
-func GetBestObservationTimeRange(data []ForecastHour, goodCloudCoverThreshold int, consecutiveGoodHoursRequired int) BestObservationInfo {
+// getBestObservationTimeRange finds the best observation time range within tonight's astronomical night
+func getBestObservationTimeRange(data []ForecastHour, goodCloudCoverThreshold int, consecutiveGoodHoursRequired int) BestObservationInfo {
 	var observationStartTime *int
 	var observationEndTime *int
 	consecutiveGoodHours := 0
@@ -191,8 +232,8 @@ func GetBestObservationTimeRange(data []ForecastHour, goodCloudCoverThreshold in
 	}
 }
 
-// CalculateNightlyAverage calculates average for a specific meteorological parameter
-func CalculateNightlyAverage(data []ForecastHour, parameter string) float64 {
+// calculateNightlyAverage calculates average for a specific meteorological parameter
+func calculateNightlyAverage(data []ForecastHour, parameter string) float64 {
 	if len(data) == 0 {
 		return 0
 	}
@@ -224,8 +265,8 @@ func CalculateNightlyAverage(data []ForecastHour, parameter string) float64 {
 	return sum / float64(count)
 }
 
-// MaxPrecipitationProbability finds the maximum precipitation probability in the forecast period
-func MaxPrecipitationProbability(data []ForecastHour) int {
+// maxPrecipitationProbability finds the maximum precipitation probability in the forecast period
+func maxPrecipitationProbability(data []ForecastHour) int {
 	if len(data) == 0 {
 		return 0
 	}
@@ -239,8 +280,8 @@ func MaxPrecipitationProbability(data []ForecastHour) int {
 	return max
 }
 
-// CalculateExtremeCloudCover finds the maximum cloud cover in the forecast period
-func CalculateExtremeCloudCover(data []ForecastHour) int {
+// calculateExtremeCloudCover finds the maximum cloud cover in the forecast period
+func calculateExtremeCloudCover(data []ForecastHour) int {
 	if len(data) == 0 {
 		return 0
 	}
@@ -254,8 +295,8 @@ func CalculateExtremeCloudCover(data []ForecastHour) int {
 	return max
 }
 
-// CalculateSeeingIndex calculates seeing conditions for astronomical observation
-func CalculateSeeingIndex(temperature, dewPoint, windSpeed float64, humidity int) int {
+// calculateSeeingIndex calculates seeing conditions for astronomical observation
+func calculateSeeingIndex(temperature, dewPoint, windSpeed float64, humidity int) int {
 	tempWeight := 0.25
 	windWeight := 0.4
 	humidityWeight := 0.15
@@ -275,7 +316,7 @@ func CalculateSeeingIndex(temperature, dewPoint, windSpeed float64, humidity int
 	return int(math.Round(math.Max(1, weightedIndex*5)))
 }
 
-func CalculateSkyQualityIndex(clouds, humidity int, windSpeed, temp, dewPoint float64, seeing int) int {
+func calculateSkyQualityIndex(clouds, humidity int, windSpeed, temp, dewPoint float64, seeing int) int {
 	tempDiff := math.Abs(temp - 15)
 	dewPointDiff := math.Abs(temp - dewPoint)
 
@@ -296,8 +337,8 @@ func CalculateSkyQualityIndex(clouds, humidity int, windSpeed, temp, dewPoint fl
 	return int(math.Max(0, math.Min(5, skyQualityIndex)))
 }
 
-// GenerateSeeingIndexForNight calculates the average seeing index for a night
-func GenerateSeeingIndexForNight(nightForecastData []ForecastHour) int {
+// generateSeeingIndexForNight calculates the average seeing index for a night
+func generateSeeingIndexForNight(nightForecastData []ForecastHour) int {
 	if len(nightForecastData) == 0 {
 		return 0
 	}
@@ -306,7 +347,7 @@ func GenerateSeeingIndexForNight(nightForecastData []ForecastHour) int {
 	count := 0
 
 	for _, hour := range nightForecastData {
-		seeingIndex := CalculateSeeingIndex(
+		seeingIndex := calculateSeeingIndex(
 			hour.Temperature,
 			hour.DewPoint,
 			hour.WindSpeed,
@@ -322,8 +363,8 @@ func GenerateSeeingIndexForNight(nightForecastData []ForecastHour) int {
 	return int(math.Round(totalIndex / float64(count)))
 }
 
-// CalculateWindDirectionAverage calculates the average wind direction using vector averaging
-func CalculateWindDirectionAverage(data []ForecastHour) int {
+// calculateWindDirectionAverage calculates the average wind direction using vector averaging
+func calculateWindDirectionAverage(data []ForecastHour) int {
 	var x, y float64
 	count := 0
 
@@ -344,8 +385,8 @@ func CalculateWindDirectionAverage(data []ForecastHour) int {
 	return int(math.Round(math.Mod(averageDirection+360, 360)))
 }
 
-// ConvertWindDirectionToNSEW converts wind direction degrees to cardinal directions
-func ConvertWindDirectionToNSEW(degrees int) string {
+// convertWindDirectionToNSEW converts wind direction degrees to cardinal directions
+func convertWindDirectionToNSEW(degrees int) string {
 	if degrees < 0 {
 		return "N/A"
 	}
@@ -353,46 +394,4 @@ func ConvertWindDirectionToNSEW(degrees int) string {
 	directions := []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
 	index := int(math.Floor(float64(degrees)+22.5/45)) % 8
 	return directions[index]
-}
-
-// AnalyzeNightForecast generates a complete night forecast analysis for astronomical observation
-func AnalyzeNightForecast(data WeatherData, sunsetTime, sunriseTime time.Time) NightForecast {
-	const goodCloudCoverThreshold = 30
-	const consecutiveGoodHoursRequired = 2
-
-	forecastData := GenerateForecastData(data)
-	nightForecastData := FilterNightForecastData(forecastData, sunsetTime, sunriseTime)
-
-	bestObservationInfo := GetBestObservationTimeRange(
-		nightForecastData,
-		goodCloudCoverThreshold,
-		consecutiveGoodHoursRequired,
-	)
-	extremeCloudCover := CalculateExtremeCloudCover(nightForecastData)
-	displayCloudCover := extremeCloudCover
-	if bestObservationInfo.TimeRange != nil {
-		displayCloudCover = bestObservationInfo.LowestCloudCover
-	}
-	nightlyTemperature := int(math.Floor(CalculateNightlyAverage(nightForecastData, "temperature")))
-	nightlyHumidity := int(math.Floor(CalculateNightlyAverage(nightForecastData, "humidity")))
-	nightlyWindSpeed := int(math.Floor(CalculateNightlyAverage(nightForecastData, "windSpeed")))
-	nightlyDewPoint := int(math.Floor(CalculateNightlyAverage(nightForecastData, "dewPoint")))
-	maxPrecipProbability := MaxPrecipitationProbability(nightForecastData)
-	seeingIndex := GenerateSeeingIndexForNight(nightForecastData)
-	nightlyWindDirection := CalculateWindDirectionAverage(nightForecastData)
-	windDirectionText := ConvertWindDirectionToNSEW(nightlyWindDirection)
-
-	return NightForecast{
-		BestObservation:      bestObservationInfo,
-		ExtremeCloudCover:    extremeCloudCover,
-		DisplayCloudCover:    displayCloudCover,
-		NightlyTemperature:   nightlyTemperature,
-		NightlyHumidity:      nightlyHumidity,
-		NightlyWindSpeed:     nightlyWindSpeed,
-		NightlyDewPoint:      nightlyDewPoint,
-		MaxPrecipProbability: maxPrecipProbability,
-		NightlyWindDirection: nightlyWindDirection,
-		WindDirectionText:    windDirectionText,
-		SeeingIndex:          seeingIndex,
-	}
 }
