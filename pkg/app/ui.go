@@ -51,8 +51,9 @@ func RenderResults(resultsList list.Model, helpView string, width, height int) s
 	)
 
 	return util.BorderStyle.
-		Width(width - 2).
-		Height(height - 2).
+		Width(width-2).
+		Height(height-2).
+		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
 }
 
