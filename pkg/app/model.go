@@ -74,128 +74,24 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles state transitions based on messages
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keyMap.Quit):
-			return m, tea.Quit
-
-		case key.Matches(msg, m.keyMap.Back):
-			if m.state == StateResults || m.state == StateWeather {
-				m.state = StatePlace
-			}
-			return m, nil
-
-		case key.Matches(msg, m.keyMap.Enter):
-			if m.state == StatePlace {
-				focus := m.placeModel.GetFocusIndex()
-				if focus == 0 {
-					query := m.placeModel.GetQuery()
-					if query == "" {
-						return m, nil
-					}
-					m.state = StateLoading
-					return m, tea.Batch(
-						weather.SearchPlaces(query),
-						m.spinner.Tick,
-					)
-				} else if focus == 1 {
-					if place, ok := m.placeModel.GetSelectedFavorite(); ok {
-						m.selectedPlace = place
-						m.state = StateLoading
-						return m, tea.Batch(
-							weather.GetWeather(place.Latitude, place.Longitude),
-							m.spinner.Tick,
-						)
-					}
-				}
-			} else if m.state == StateResults {
-				if i, ok := m.placesList.SelectedItem().(weather.Place); ok {
-					m.selectedPlace = i
-					m.state = StateLoading
-					return m, tea.Batch(
-						weather.GetWeather(i.Latitude, i.Longitude),
-						m.spinner.Tick,
-					)
-				}
-			}
-
-		case key.Matches(msg, m.keyMap.AddFavorite):
-			if m.state == StateWeather && !m.favorites.IsFavorite(m.selectedPlace) {
-				m.favorites.AddFavorite(m.selectedPlace)
-				m.keyMap.UpdateAddRemoveFavoriteBindings(true)
-				m.placeModel.UpdateFavorites()
-				return m, nil
-			}
-
-		case key.Matches(msg, m.keyMap.RemoveFavorite):
-			if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
-				m.favorites.RemoveFavorite(m.selectedPlace)
-				m.keyMap.UpdateAddRemoveFavoriteBindings(false)
-				m.placeModel.UpdateFavorites()
-				return m, nil
-			}
-		}
-
+		return m.handleKeyMsg(msg)
 	case weather.ErrMsg:
 		m.err = msg
 		m.state = StatePlace
 		return m, nil
-
 	case weather.SearchResultsMsg:
 		m.state = StateResults
 		m.placesList.SetItems(msg)
 		return m, nil
-
 	case weather.WeatherResultMsg:
-		m.weatherData = msg.Data
-		m.state = StateWeather
-		m.weatherModel = weather.NewWeatherModel(
-			msg.Data,
-			m.selectedPlace,
-			m.favorites,
-			m.width,
-			m.height,
-		)
-		return m, m.weatherModel.Init()
-
+		return m.handleWeatherResultMsg(msg)
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-
-		h := msg.Height - 6
-		if h < 0 {
-			h = 10
-		}
-		m.placesList.SetSize(msg.Width-4, h)
+		return m.handleWindowSizeMsg(msg)
 	}
 
-	// Update active component based on state
-	switch m.state {
-	case StatePlace:
-		var placeCmd tea.Cmd
-		m.placeModel, placeCmd = m.placeModel.Update(msg)
-		return m, placeCmd
-	case StateLoading:
-		m.spinner, cmd = m.spinner.Update(msg)
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
-	case StateResults:
-		var listCmd tea.Cmd
-		m.placesList, listCmd = m.placesList.Update(msg)
-		return m, listCmd
-	case StateWeather:
-		var weatherCmd tea.Cmd
-		isFavorite := m.favorites.IsFavorite(m.selectedPlace)
-		m.keyMap.UpdateAddRemoveFavoriteBindings(isFavorite)
-		m.weatherModel, weatherCmd = m.weatherModel.Update(msg)
-		return m, weatherCmd
-	}
-
-	return m, nil
+	return m.updateActiveComponent(msg)
 }
 
 // View renders the UI based on the current state
@@ -220,4 +116,138 @@ func (m Model) View() string {
 	default:
 		return RenderLoading(m.spinner.View(), m.width, m.height)
 	}
+}
+
+func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keyMap.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keyMap.Back):
+		if m.state == StateResults || m.state == StateWeather {
+			m.state = StatePlace
+		}
+		return m, nil
+	case key.Matches(msg, m.keyMap.Enter):
+		return m.handleEnterKey()
+	case key.Matches(msg, m.keyMap.AddFavorite):
+		return m.handleAddFavorite()
+	case key.Matches(msg, m.keyMap.RemoveFavorite):
+		return m.handleRemoveFavorite()
+	}
+
+	return m.updateActiveComponent(msg)
+}
+
+func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
+	switch m.state {
+	case StatePlace:
+		focus := m.placeModel.GetFocusIndex()
+		switch focus {
+		case 0:
+			query := m.placeModel.GetQuery()
+			if query == "" {
+				return m, nil
+			}
+			m.state = StateLoading
+			return m, tea.Batch(
+				weather.SearchPlaces(query),
+				m.spinner.Tick,
+			)
+		case 1:
+			if place, ok := m.placeModel.GetSelectedFavorite(); ok {
+				m.selectedPlace = place
+				m.state = StateLoading
+				return m, tea.Batch(
+					weather.GetWeather(place.Latitude, place.Longitude),
+					m.spinner.Tick,
+				)
+			}
+		}
+	case StateResults:
+		if i, ok := m.placesList.SelectedItem().(weather.Place); ok {
+			m.selectedPlace = i
+			m.state = StateLoading
+			return m, tea.Batch(
+				weather.GetWeather(i.Latitude, i.Longitude),
+				m.spinner.Tick,
+			)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleAddFavorite() (tea.Model, tea.Cmd) {
+	if m.state == StateWeather && !m.favorites.IsFavorite(m.selectedPlace) {
+		if err := m.favorites.AddFavorite(m.selectedPlace); err != nil {
+			m.err = err
+			return m, nil
+		}
+		m.keyMap.UpdateAddRemoveFavoriteBindings(true)
+		m.placeModel.UpdateFavorites()
+		return m, nil
+	}
+	return m, nil
+}
+
+func (m Model) handleRemoveFavorite() (tea.Model, tea.Cmd) {
+	if m.state == StateWeather && m.favorites.IsFavorite(m.selectedPlace) {
+		if err := m.favorites.RemoveFavorite(m.selectedPlace); err != nil {
+			m.err = err
+			return m, nil
+		}
+		m.keyMap.UpdateAddRemoveFavoriteBindings(false)
+		m.placeModel.UpdateFavorites()
+		return m, nil
+	}
+	return m, nil
+}
+
+func (m Model) handleWeatherResultMsg(msg weather.WeatherResultMsg) (tea.Model, tea.Cmd) {
+	m.weatherData = msg.Data
+	m.state = StateWeather
+	m.weatherModel = weather.NewWeatherModel(
+		msg.Data,
+		m.selectedPlace,
+		m.favorites,
+		m.width,
+		m.height,
+	)
+	return m, m.weatherModel.Init()
+}
+
+func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+
+	h := msg.Height - 6
+	if h < 0 {
+		h = 10
+	}
+	m.placesList.SetSize(msg.Width-4, h)
+
+	return m.updateActiveComponent(msg)
+}
+
+func (m Model) updateActiveComponent(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch m.state {
+	case StatePlace:
+		var placeCmd tea.Cmd
+		m.placeModel, placeCmd = m.placeModel.Update(msg)
+		return m, placeCmd
+	case StateLoading:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	case StateResults:
+		var listCmd tea.Cmd
+		m.placesList, listCmd = m.placesList.Update(msg)
+		return m, listCmd
+	case StateWeather:
+		var weatherCmd tea.Cmd
+		isFavorite := m.favorites.IsFavorite(m.selectedPlace)
+		m.keyMap.UpdateAddRemoveFavoriteBindings(isFavorite)
+		m.weatherModel, weatherCmd = m.weatherModel.Update(msg)
+		return m, weatherCmd
+	}
+	return m, nil
 }

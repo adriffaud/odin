@@ -86,7 +86,7 @@ func SearchPlaces(query string) tea.Cmd {
 		}
 
 		if len(items) == 0 {
-			return ErrMsg(fmt.Errorf("No results found for %s", query))
+			return ErrMsg(fmt.Errorf("no results found for %s", query))
 		}
 
 		return SearchResultsMsg(items)
