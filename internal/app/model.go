@@ -40,6 +40,16 @@ type Model struct {
 	help          help.Model
 }
 
+type placesResultMsg struct {
+	places []domain.Place
+	err    error
+}
+
+type weatherResultMsg struct {
+	data domain.WeatherData
+	err  error
+}
+
 // InitialModel returns the initial application model
 func InitialModel() Model {
 	s := spinner.New()
@@ -81,16 +91,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
-	case openmeteo.ErrMsg:
-		m.err = msg
-		m.state = StatePlace
-		return m, nil
-	case photon.SearchResultsMsg:
+	case placesResultMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			m.state = StatePlace
+			return m, nil
+		}
 		m.state = StateResults
-		m.placesList.SetItems(msg)
+		items := make([]list.Item, len(msg.places))
+		for i, p := range msg.places {
+			items[i] = p
+		}
+		m.placesList.SetItems(items)
 		return m, nil
-	case openmeteo.WeatherResultMsg:
-		return m.handleWeatherResultMsg(msg)
+	case weatherResultMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			m.state = StatePlace
+			return m, nil
+		}
+		return m.handleWeatherResultMsg(msg.data)
 	case tea.WindowSizeMsg:
 		return m.handleWindowSizeMsg(msg)
 	}
@@ -153,28 +173,31 @@ func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.state = StateLoading
-			return m, tea.Batch(
-				photon.SearchPlaces(query),
-				m.spinner.Tick,
-			)
+			cmd := func() tea.Msg {
+				places, err := photon.SearchPlaces(query)
+				return placesResultMsg{places: places, err: err}
+			}
+			return m, tea.Batch(cmd, m.spinner.Tick)
 		case 1:
 			if place, ok := m.placeModel.GetSelectedFavorite(); ok {
 				m.selectedPlace = place
 				m.state = StateLoading
-				return m, tea.Batch(
-					openmeteo.GetWeather(place.Latitude, place.Longitude),
-					m.spinner.Tick,
-				)
+				cmd := func() tea.Msg {
+					weather, err := openmeteo.GetWeather(place.Latitude, place.Longitude)
+					return weatherResultMsg{data: weather, err: err}
+				}
+				return m, tea.Batch(cmd, m.spinner.Tick)
 			}
 		}
 	case StateResults:
 		if i, ok := m.placesList.SelectedItem().(domain.Place); ok {
 			m.selectedPlace = i
 			m.state = StateLoading
-			return m, tea.Batch(
-				openmeteo.GetWeather(i.Latitude, i.Longitude),
-				m.spinner.Tick,
-			)
+			cmd := func() tea.Msg {
+				weather, err := openmeteo.GetWeather(i.Latitude, i.Longitude)
+				return weatherResultMsg{data: weather, err: err}
+			}
+			return m, tea.Batch(cmd, m.spinner.Tick)
 		}
 	}
 	return m, nil
@@ -206,16 +229,18 @@ func (m Model) handleRemoveFavorite() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleWeatherResultMsg(msg openmeteo.WeatherResultMsg) (tea.Model, tea.Cmd) {
-	m.weatherData = msg.Data
+func (m Model) handleWeatherResultMsg(data domain.WeatherData) (tea.Model, tea.Cmd) {
+	m.weatherData = data
 	m.state = StateWeather
 	m.weatherModel = ui.NewWeatherModel(
-		msg.Data,
+		data,
 		m.selectedPlace,
 		m.favorites,
 		m.width,
 		m.height,
 	)
+	isFavorite := m.favorites.IsFavorite(m.selectedPlace)
+	m.keyMap.UpdateAddRemoveFavoriteBindings(isFavorite)
 	return m, m.weatherModel.Init()
 }
 
