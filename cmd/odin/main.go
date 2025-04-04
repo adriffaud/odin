@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"driffaud.fr/odin/pkg/app"
+	"driffaud.fr/odin/internal/app"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

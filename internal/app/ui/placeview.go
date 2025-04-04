@@ -1,7 +1,9 @@
-package weather
+package ui
 
 import (
-	"driffaud.fr/odin/pkg/util"
+	"driffaud.fr/odin/internal/domain"
+	"driffaud.fr/odin/internal/platform/storage"
+	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,11 +16,11 @@ type PlaceModel struct {
 	input         textinput.Model
 	favoritesList list.Model
 	focusIndex    int // 0 for input, 1 for favorites list
-	favorites     *FavoritesStore
+	favorites     *storage.FavoritesStore
 }
 
 // NewPlaceModel initializes a new place search model
-func NewPlaceModel(favorites *FavoritesStore) PlaceModel {
+func NewPlaceModel(favorites *storage.FavoritesStore) PlaceModel {
 	ti := textinput.New()
 	ti.Placeholder = "Entrer un nom de lieu"
 	ti.Focus()
@@ -146,13 +148,13 @@ func (m PlaceModel) GetQuery() string {
 }
 
 // GetSelectedFavorite returns the currently selected favorite place if any
-func (m PlaceModel) GetSelectedFavorite() (Place, bool) {
+func (m PlaceModel) GetSelectedFavorite() (domain.Place, bool) {
 	if m.focusIndex == 1 {
-		if i, ok := m.favoritesList.SelectedItem().(Place); ok {
+		if i, ok := m.favoritesList.SelectedItem().(domain.Place); ok {
 			return i, true
 		}
 	}
-	return Place{}, false
+	return domain.Place{}, false
 }
 
 // GetFocusIndex returns the current focus index

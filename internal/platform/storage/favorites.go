@@ -1,15 +1,17 @@
-package weather
+package storage
 
 import (
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+
+	"driffaud.fr/odin/internal/domain"
 )
 
 // FavoritesStore manages the storage and retrieval of favorite places
 type FavoritesStore struct {
-	Favorites []Place
+	Favorites []domain.Place
 	FilePath  string
 }
 
@@ -58,7 +60,7 @@ func (fs *FavoritesStore) Save() error {
 }
 
 // AddFavorite adds a place to favorites
-func (fs *FavoritesStore) AddFavorite(place Place) error {
+func (fs *FavoritesStore) AddFavorite(place domain.Place) error {
 	// Check if the place is already in favorites
 	for _, fav := range fs.Favorites {
 		if fav.Name == place.Name && fav.Latitude == place.Latitude && fav.Longitude == place.Longitude {
@@ -71,8 +73,8 @@ func (fs *FavoritesStore) AddFavorite(place Place) error {
 }
 
 // RemoveFavorite removes a place from favorites
-func (fs *FavoritesStore) RemoveFavorite(place Place) error {
-	newFavorites := []Place{}
+func (fs *FavoritesStore) RemoveFavorite(place domain.Place) error {
+	newFavorites := []domain.Place{}
 	for _, fav := range fs.Favorites {
 		if !(fav.Name == place.Name && fav.Latitude == place.Latitude && fav.Longitude == place.Longitude) {
 			newFavorites = append(newFavorites, fav)
@@ -84,7 +86,7 @@ func (fs *FavoritesStore) RemoveFavorite(place Place) error {
 }
 
 // IsFavorite checks if a place is in the favorites list
-func (fs *FavoritesStore) IsFavorite(place Place) bool {
+func (fs *FavoritesStore) IsFavorite(place domain.Place) bool {
 	for _, fav := range fs.Favorites {
 		if fav.Name == place.Name && fav.Latitude == place.Latitude && fav.Longitude == place.Longitude {
 			return true

@@ -1,10 +1,11 @@
-package weather
+package forecast
 
 import (
 	"math"
 	"time"
 
-	"driffaud.fr/odin/pkg/util"
+	"driffaud.fr/odin/internal/platform/api/openmeteo"
+	"driffaud.fr/odin/internal/util"
 )
 
 // ForecastHour represents a single hour of forecast data
@@ -53,7 +54,7 @@ type NightForecast struct {
 }
 
 // GenerateForecastData converts Open-Meteo weather data into a slice of hourly forecast data
-func GenerateForecastData(data WeatherData) []ForecastHour {
+func GenerateForecastData(data openmeteo.WeatherData) []ForecastHour {
 	if len(data.Hourly.Time) == 0 {
 		return []ForecastHour{}
 	}

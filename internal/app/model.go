@@ -1,7 +1,11 @@
 package app
 
 import (
-	"driffaud.fr/odin/pkg/weather"
+	"driffaud.fr/odin/internal/app/ui"
+	"driffaud.fr/odin/internal/domain"
+	"driffaud.fr/odin/internal/platform/api/openmeteo"
+	"driffaud.fr/odin/internal/platform/api/photon"
+	"driffaud.fr/odin/internal/platform/storage"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -24,13 +28,13 @@ const (
 type Model struct {
 	width, height int
 	state         ApplicationState
-	placeModel    weather.PlaceModel
-	weatherModel  weather.WeatherModel
+	placeModel    ui.PlaceModel
+	weatherModel  ui.WeatherModel
 	placesList    list.Model
-	weatherData   weather.WeatherData
-	selectedPlace weather.Place
+	weatherData   openmeteo.WeatherData
+	selectedPlace domain.Place
 	spinner       spinner.Model
-	favorites     *weather.FavoritesStore
+	favorites     *storage.FavoritesStore
 	err           error
 	keyMap        KeyMap
 	help          help.Model
@@ -42,19 +46,19 @@ func InitialModel() Model {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	favStore, err := weather.NewFavoritesStore()
+	favStore, err := storage.NewFavoritesStore()
 	if err != nil {
-		favStore = &weather.FavoritesStore{}
+		favStore = &storage.FavoritesStore{}
 	}
 
-	placeModel := weather.NewPlaceModel(favStore)
+	placeModel := ui.NewPlaceModel(favStore)
 	helpModel := help.New()
 	helpModel.ShowAll = false
 
 	return Model{
 		state:      StatePlace,
 		placeModel: placeModel,
-		placesList: InitResultsList(),
+		placesList: ui.InitResultsList(),
 		spinner:    s,
 		favorites:  favStore,
 		err:        nil,
@@ -77,15 +81,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
-	case weather.ErrMsg:
+	case openmeteo.ErrMsg:
 		m.err = msg
 		m.state = StatePlace
 		return m, nil
-	case weather.SearchResultsMsg:
+	case photon.SearchResultsMsg:
 		m.state = StateResults
 		m.placesList.SetItems(msg)
 		return m, nil
-	case weather.WeatherResultMsg:
+	case openmeteo.WeatherResultMsg:
 		return m.handleWeatherResultMsg(msg)
 	case tea.WindowSizeMsg:
 		return m.handleWindowSizeMsg(msg)
@@ -97,7 +101,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the UI based on the current state
 func (m Model) View() string {
 	if m.err != nil {
-		return RenderError(m.err, m.width, m.height)
+		return ui.RenderError(m.err, m.width, m.height)
 	}
 
 	m.keyMap.SetState(m.state)
@@ -108,13 +112,13 @@ func (m Model) View() string {
 	case StatePlace:
 		return m.placeModel.View(helpView)
 	case StateLoading:
-		return RenderLoading(m.spinner.View(), m.width, m.height)
+		return ui.RenderLoading(m.spinner.View(), m.width, m.height)
 	case StateResults:
-		return RenderResults(m.placesList, helpView, m.width, m.height)
+		return ui.RenderResults(m.placesList, helpView, m.width, m.height)
 	case StateWeather:
 		return m.weatherModel.View(helpView)
 	default:
-		return RenderLoading(m.spinner.View(), m.width, m.height)
+		return ui.RenderLoading(m.spinner.View(), m.width, m.height)
 	}
 }
 
@@ -150,7 +154,7 @@ func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
 			}
 			m.state = StateLoading
 			return m, tea.Batch(
-				weather.SearchPlaces(query),
+				photon.SearchPlaces(query),
 				m.spinner.Tick,
 			)
 		case 1:
@@ -158,17 +162,17 @@ func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
 				m.selectedPlace = place
 				m.state = StateLoading
 				return m, tea.Batch(
-					weather.GetWeather(place.Latitude, place.Longitude),
+					openmeteo.GetWeather(place.Latitude, place.Longitude),
 					m.spinner.Tick,
 				)
 			}
 		}
 	case StateResults:
-		if i, ok := m.placesList.SelectedItem().(weather.Place); ok {
+		if i, ok := m.placesList.SelectedItem().(domain.Place); ok {
 			m.selectedPlace = i
 			m.state = StateLoading
 			return m, tea.Batch(
-				weather.GetWeather(i.Latitude, i.Longitude),
+				openmeteo.GetWeather(i.Latitude, i.Longitude),
 				m.spinner.Tick,
 			)
 		}
@@ -202,10 +206,10 @@ func (m Model) handleRemoveFavorite() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleWeatherResultMsg(msg weather.WeatherResultMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleWeatherResultMsg(msg openmeteo.WeatherResultMsg) (tea.Model, tea.Cmd) {
 	m.weatherData = msg.Data
 	m.state = StateWeather
-	m.weatherModel = weather.NewWeatherModel(
+	m.weatherModel = ui.NewWeatherModel(
 		msg.Data,
 		m.selectedPlace,
 		m.favorites,

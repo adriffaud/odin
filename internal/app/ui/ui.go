@@ -1,34 +1,12 @@
-package app
+package ui
 
 import (
 	"fmt"
 
-	"driffaud.fr/odin/pkg/util"
+	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 )
-
-// InitInput initializes the text input component
-func InitInput() textinput.Model {
-	ti := textinput.New()
-	ti.Placeholder = "Entrer un nom de lieu"
-	ti.Focus()
-	ti.CharLimit = 156
-	ti.Width = 40
-	return ti
-}
-
-// InitFavoritesList initializes the favorites list component
-func InitFavoritesList(items []list.Item) list.Model {
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Lieux favoris"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.Styles.Title = util.TitleStyle
-	l.Styles.HelpStyle = lipgloss.NewStyle().MarginLeft(2)
-	return l
-}
 
 // InitResults initializes the results list component
 func InitResultsList() list.Model {

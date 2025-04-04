@@ -1,10 +1,15 @@
-package weather
+package ui
 
 import (
 	"fmt"
 	"time"
 
-	"driffaud.fr/odin/pkg/util"
+	"driffaud.fr/odin/internal/domain"
+	"driffaud.fr/odin/internal/domain/astro"
+	"driffaud.fr/odin/internal/forecast"
+	"driffaud.fr/odin/internal/platform/api/openmeteo"
+	"driffaud.fr/odin/internal/platform/storage"
+	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -13,15 +18,15 @@ import (
 // WeatherModel represents the weather view component
 type WeatherModel struct {
 	width, height int
-	weatherData   WeatherData
+	weatherData   openmeteo.WeatherData
 	placeName     string
 	isFavorite    bool
-	favorites     *FavoritesStore
-	selectedPlace Place
+	favorites     *storage.FavoritesStore
+	selectedPlace domain.Place
 }
 
 // NewWeatherModel creates a new weather view model
-func NewWeatherModel(data WeatherData, place Place, favorites *FavoritesStore, width, height int) WeatherModel {
+func NewWeatherModel(data openmeteo.WeatherData, place domain.Place, favorites *storage.FavoritesStore, width, height int) WeatherModel {
 	isFavorite := favorites.IsFavorite(place)
 	placeName := place.Name + " (" + place.Address + ")"
 
@@ -63,7 +68,7 @@ func (m WeatherModel) View(helpView string) string {
 			Render("No weather data available")
 	}
 
-	forecastData := GenerateForecastData(m.weatherData)
+	forecastData := forecast.GenerateForecastData(m.weatherData)
 
 	astroSection := formatAstroInfo(forecastData, m.weatherData.Latitude, m.weatherData.Longitude)
 	var forecastSection string
@@ -104,10 +109,10 @@ func formatTime(t time.Time) string {
 	return t.Format("15:04")
 }
 
-func formatAstroInfo(forecastData []ForecastHour, lat, lon float64) string {
-	sunInfo := GetSunInfo(lat, lon)
-	moonInfo := GetMoonInfo(lat, lon)
-	nightForecast := AnalyzeNightForecast(forecastData, sunInfo.Sunset, sunInfo.Sunrise)
+func formatAstroInfo(forecastData []forecast.ForecastHour, lat, lon float64) string {
+	sunInfo := astro.GetSunInfo(lat, lon)
+	moonInfo := astro.GetMoonInfo(lat, lon)
+	nightForecast := forecast.AnalyzeNightForecast(forecastData, sunInfo.Sunset, sunInfo.Sunrise)
 
 	sunInfoStr := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
 		formatTime(sunInfo.Sunset),
@@ -166,7 +171,7 @@ func formatAstroInfo(forecastData []ForecastHour, lat, lon float64) string {
 	))
 }
 
-func formatForecast(forecastData []ForecastHour) string {
+func formatForecast(forecastData []forecast.ForecastHour) string {
 	title := util.SubtitleStyle.Render("Prévisions des prochaines heures:")
 
 	now := time.Now()
