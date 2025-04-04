@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"driffaud.fr/odin/internal/platform/api/openmeteo"
+	"driffaud.fr/odin/internal/domain"
 	"driffaud.fr/odin/internal/util"
 )
 
@@ -54,7 +54,7 @@ type NightForecast struct {
 }
 
 // GenerateForecastData converts Open-Meteo weather data into a slice of hourly forecast data
-func GenerateForecastData(data openmeteo.WeatherData) []ForecastHour {
+func GenerateForecastData(data domain.WeatherData) []ForecastHour {
 	if len(data.Hourly.Time) == 0 {
 		return []ForecastHour{}
 	}

@@ -7,7 +7,6 @@ import (
 	"driffaud.fr/odin/internal/domain"
 	"driffaud.fr/odin/internal/domain/astro"
 	"driffaud.fr/odin/internal/forecast"
-	"driffaud.fr/odin/internal/platform/api/openmeteo"
 	"driffaud.fr/odin/internal/platform/storage"
 	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/table"
@@ -18,7 +17,7 @@ import (
 // WeatherModel represents the weather view component
 type WeatherModel struct {
 	width, height int
-	weatherData   openmeteo.WeatherData
+	weatherData   domain.WeatherData
 	placeName     string
 	isFavorite    bool
 	favorites     *storage.FavoritesStore
@@ -26,7 +25,7 @@ type WeatherModel struct {
 }
 
 // NewWeatherModel creates a new weather view model
-func NewWeatherModel(data openmeteo.WeatherData, place domain.Place, favorites *storage.FavoritesStore, width, height int) WeatherModel {
+func NewWeatherModel(data domain.WeatherData, place domain.Place, favorites *storage.FavoritesStore, width, height int) WeatherModel {
 	isFavorite := favorites.IsFavorite(place)
 	placeName := place.Name + " (" + place.Address + ")"
 

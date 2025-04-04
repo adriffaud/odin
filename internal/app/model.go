@@ -31,7 +31,7 @@ type Model struct {
 	placeModel    ui.PlaceModel
 	weatherModel  ui.WeatherModel
 	placesList    list.Model
-	weatherData   openmeteo.WeatherData
+	weatherData   domain.WeatherData
 	selectedPlace domain.Place
 	spinner       spinner.Model
 	favorites     *storage.FavoritesStore
