@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 
+	"driffaud.fr/odin/internal/i18n"
 	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
@@ -11,7 +12,7 @@ import (
 // InitResults initializes the results list component
 func InitResultsList() list.Model {
 	l := list.New(nil, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Résultats"
+	l.Title = i18n.T("app.results_title", nil)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.Styles.Title = util.TitleStyle
@@ -37,7 +38,7 @@ func RenderResults(resultsList list.Model, helpView string, width, height int) s
 
 // RenderLoading renders the loading screen
 func RenderLoading(spinnerView string, width, height int) string {
-	loadingMessage := fmt.Sprintf("%s Chargement...", spinnerView)
+	loadingMessage := fmt.Sprintf("%s %s", spinnerView, i18n.T("app.loading", nil))
 	return util.BorderStyle.
 		Width(width-2).
 		Height(height-2).
@@ -47,7 +48,7 @@ func RenderLoading(spinnerView string, width, height int) string {
 
 // RenderError renders the error screen
 func RenderError(err error, width, height int) string {
-	errorMsg := fmt.Sprintf("Erreur: %s\n\nAppuyer sur une touche pour continuer...", err)
+	errorMsg := fmt.Sprint(i18n.T("app.error", map[string]any{"Error": err}))
 	return util.BorderStyle.
 		Width(width-2).
 		Height(height-2).

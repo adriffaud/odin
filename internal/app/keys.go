@@ -1,6 +1,9 @@
 package app
 
-import "github.com/charmbracelet/bubbles/key"
+import (
+	"driffaud.fr/odin/internal/i18n"
+	"github.com/charmbracelet/bubbles/key"
+)
 
 // KeyMap defines all the keybindings for the application
 type KeyMap struct {
@@ -43,34 +46,29 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 // NewKeyMap creates a new keymap with default bindings
 func NewKeyMap() KeyMap {
 	return KeyMap{
-		// Navigation
 		Back: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "retour"),
+			key.WithHelp("esc", i18n.T("key_help.back", nil)),
 		),
 		Tab: key.NewBinding(
 			key.WithKeys("tab"),
-			key.WithHelp("tab", "changer de focus"),
+			key.WithHelp("tab", i18n.T("key_help.tab", nil)),
 		),
 		Enter: key.NewBinding(
 			key.WithKeys("enter"),
-			key.WithHelp("entrée", "sélectionner"),
+			key.WithHelp("enter", i18n.T("key_help.enter", nil)),
 		),
-
-		// App control
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
-			key.WithHelp("ctrl+c", "quitter"),
+			key.WithHelp("ctrl+c", i18n.T("key_help.quit", nil)),
 		),
-
-		// Favorites management
 		AddFavorite: key.NewBinding(
 			key.WithKeys("f2"),
-			key.WithHelp("f2", "ajouter aux favoris"),
+			key.WithHelp("f2", i18n.T("key_help.add_favorite", nil)),
 		),
 		RemoveFavorite: key.NewBinding(
 			key.WithKeys("f3"),
-			key.WithHelp("f3", "retirer des favoris"),
+			key.WithHelp("f3", i18n.T("key_help.remove_favorite", nil)),
 		),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"driffaud.fr/odin/internal/domain"
 	"driffaud.fr/odin/internal/domain/astro"
 	"driffaud.fr/odin/internal/forecast"
+	"driffaud.fr/odin/internal/i18n"
 	"driffaud.fr/odin/internal/platform/storage"
 	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/table"
@@ -64,7 +65,7 @@ func (m WeatherModel) View(helpView string) string {
 			Height(m.height-2).
 			Padding(0, 1).
 			Align(lipgloss.Center, lipgloss.Center).
-			Render("No weather data available")
+			Render(i18n.T("weather.no_data", nil))
 	}
 
 	forecastData := forecast.GenerateForecastData(m.weatherData)
@@ -99,7 +100,10 @@ func (m WeatherModel) headerView() string {
 		favoriteStatus = "❌"
 	}
 
-	title := fmt.Sprintf("Météo à %s %s", m.placeName, favoriteStatus)
+	title := fmt.Sprint(i18n.T("weather.at_title", map[string]any{
+		"Place":     m.placeName,
+		"FavStatus": favoriteStatus,
+	}))
 
 	return util.TitleStyle.Render(title)
 }
@@ -113,44 +117,50 @@ func formatAstroInfo(forecastData []forecast.ForecastHour, lat, lon float64) str
 	moonInfo := astro.GetMoonInfo(lat, lon)
 	nightForecast := forecast.AnalyzeNightForecast(forecastData, sunInfo.Sunset, sunInfo.Sunrise)
 
-	sunInfoStr := fmt.Sprintf("☀️ Coucher : %s | Crépuscule astro : %s | Aube astro : %s | Lever : %s",
-		formatTime(sunInfo.Sunset),
-		formatTime(sunInfo.Dusk),
-		formatTime(sunInfo.Dawn),
-		formatTime(sunInfo.Sunrise),
+	sunInfoStr := fmt.Sprint(i18n.T("weather.sunset", map[string]any{
+		"Sunset":  formatTime(sunInfo.Sunset),
+		"Dusk":    formatTime(sunInfo.Dusk),
+		"Dawn":    formatTime(sunInfo.Dawn),
+		"Sunrise": formatTime(sunInfo.Sunrise),
+	}),
 	)
 
-	moonInfoStr := fmt.Sprintf("%s Lever : %s | Coucher: %s | Illumination : %.0f%% (%s)",
-		moonInfo.PhaseEmoji,
-		formatTime(moonInfo.Moonrise),
-		formatTime(moonInfo.Moonset),
-		moonInfo.Illumination,
-		moonInfo.PhaseName,
+	moonInfoStr := fmt.Sprint(i18n.T("weather.moonphase", map[string]any{
+		"MoonEmoji":    moonInfo.PhaseEmoji,
+		"Moonrise":     formatTime(moonInfo.Moonrise),
+		"Moonset":      formatTime(moonInfo.Moonset),
+		"Illumination": fmt.Sprintf("%.0f", moonInfo.Illumination),
+		"PhaseName":    moonInfo.PhaseName,
+	}),
 	)
 
-	forecastTitle := "🔭 Conditions d'observation cette nuit:"
+	forecastTitle := i18n.T("weather.conditions_title", nil)
 
 	var observationTimeStr string
 	if nightForecast.BestObservation.TimeRange != nil {
-		observationTimeStr = fmt.Sprintf("Meilleure période: %dh à %dh (couverture nuageuse: %d%%)",
-			nightForecast.BestObservation.TimeRange.Start,
-			nightForecast.BestObservation.TimeRange.End,
-			nightForecast.BestObservation.LowestCloudCover)
+		observationTimeStr = fmt.Sprint(i18n.T("weather.best_period", map[string]any{
+			"Start":      nightForecast.BestObservation.TimeRange.Start,
+			"End":        nightForecast.BestObservation.TimeRange.End,
+			"CloudCover": nightForecast.BestObservation.LowestCloudCover,
+		}))
 	} else {
-		observationTimeStr = fmt.Sprintf("Conditions défavorables (couverture nuageuse: %d%%)",
-			nightForecast.DisplayCloudCover)
+		observationTimeStr = fmt.Sprint(i18n.T("weather.unfavorable", map[string]any{
+			"CloudCover": nightForecast.DisplayCloudCover,
+		}))
 	}
 
-	weatherConditions := fmt.Sprintf("Temp: %d°C | Humidité: %d%% | Vent: %d km/h %s | Point de rosée: %d°C",
-		nightForecast.NightlyTemperature,
-		nightForecast.NightlyHumidity,
-		nightForecast.NightlyWindSpeed,
-		nightForecast.WindDirectionText,
-		nightForecast.NightlyDewPoint)
+	weatherConditions := fmt.Sprint(i18n.T("weather.conditions", map[string]any{
+		"Temp":      nightForecast.NightlyTemperature,
+		"Humidity":  nightForecast.NightlyHumidity,
+		"WindSpeed": nightForecast.NightlyWindSpeed,
+		"WindDir":   nightForecast.WindDirectionText,
+		"DewPoint":  nightForecast.NightlyDewPoint,
+	}))
 
-	precipAndSeeing := fmt.Sprintf("Risque de précipitation: %d%% | Indice de seeing: %d/5",
-		nightForecast.MaxPrecipProbability,
-		nightForecast.SeeingIndex)
+	precipAndSeeing := fmt.Sprint(i18n.T("weather.precip_and_seeing", map[string]any{
+		"Precip": nightForecast.MaxPrecipProbability,
+		"Seeing": nightForecast.SeeingIndex,
+	}))
 
 	nightForecastStr := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -171,7 +181,7 @@ func formatAstroInfo(forecastData []forecast.ForecastHour, lat, lon float64) str
 }
 
 func formatForecast(forecastData []forecast.ForecastHour) string {
-	title := util.SubtitleStyle.Render("Prévisions des prochaines heures:")
+	title := util.SubtitleStyle.Render(i18n.T("forecast.title", nil))
 
 	now := time.Now()
 	startIndex := 0
@@ -189,14 +199,14 @@ func formatForecast(forecastData []forecast.ForecastHour) string {
 	}
 
 	columns := []table.Column{
-		{Title: "Heure", Width: 7},
-		{Title: "Nuages", Width: 7},
-		{Title: "Pluie", Width: 7},
-		{Title: "Seeing", Width: 7},
-		{Title: "Vent", Width: 9},
-		{Title: "Humidité", Width: 9},
-		{Title: "Temp", Width: 7},
-		{Title: "Rosée", Width: 7},
+		{Title: i18n.T("forecast.hour", nil), Width: 7},
+		{Title: i18n.T("forecast.clouds", nil), Width: 7},
+		{Title: i18n.T("forecast.rain", nil), Width: 7},
+		{Title: i18n.T("forecast.seeing", nil), Width: 7},
+		{Title: i18n.T("forecast.wind", nil), Width: 9},
+		{Title: i18n.T("forecast.humidity", nil), Width: 9},
+		{Title: i18n.T("forecast.temp", nil), Width: 7},
+		{Title: i18n.T("forecast.dew", nil), Width: 7},
 	}
 
 	var rows []table.Row

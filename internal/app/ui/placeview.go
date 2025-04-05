@@ -2,6 +2,7 @@ package ui
 
 import (
 	"driffaud.fr/odin/internal/domain"
+	"driffaud.fr/odin/internal/i18n"
 	"driffaud.fr/odin/internal/platform/storage"
 	"driffaud.fr/odin/internal/util"
 	"github.com/charmbracelet/bubbles/list"
@@ -22,7 +23,7 @@ type PlaceModel struct {
 // NewPlaceModel initializes a new place search model
 func NewPlaceModel(favorites *storage.FavoritesStore) PlaceModel {
 	ti := textinput.New()
-	ti.Placeholder = "Entrer un nom de lieu"
+	ti.Placeholder = i18n.T("app.search_place", nil)
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 40
@@ -33,7 +34,7 @@ func NewPlaceModel(favorites *storage.FavoritesStore) PlaceModel {
 	}
 
 	favoritesList := list.New(favoriteItems, list.NewDefaultDelegate(), 0, 0)
-	favoritesList.Title = "Lieux favoris"
+	favoritesList.Title = i18n.T("app.favorites_title", nil)
 	favoritesList.SetShowStatusBar(false)
 	favoritesList.SetFilteringEnabled(false)
 	favoritesList.SetShowHelp(false)
@@ -96,9 +97,9 @@ func (m PlaceModel) Update(msg tea.Msg) (PlaceModel, tea.Cmd) {
 
 // View renders the place model UI
 func (m PlaceModel) View(helpView string) string {
-	title := util.TitleStyle.Render("Météo astronomique")
+	title := util.TitleStyle.Render(i18n.T("app.title", nil))
 
-	inputTitle := "Rechercher un lieu"
+	inputTitle := i18n.T("app.search_title", nil)
 	if m.focusIndex == 0 {
 		inputTitle = "> " + inputTitle + " <"
 	}
@@ -119,7 +120,7 @@ func (m PlaceModel) View(helpView string) string {
 	} else {
 		favoritesSection = lipgloss.NewStyle().
 			Faint(true).
-			Render("Aucun lieu favori - Appuyez sur F2 dans la vue météo pour en ajouter")
+			Render(i18n.T("app.no_favorites", nil))
 	}
 
 	inputSection := lipgloss.JoinVertical(lipgloss.Left,
