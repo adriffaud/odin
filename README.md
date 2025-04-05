@@ -39,7 +39,8 @@ go build -o odin main.go
 
 - **Tab**: Switch between search field and favorites list
 - **Enter**: Confirm selection
-- **Esc**: Go back or exit
+- **Esc**: Go back
+- **CTRL+C**: Exit application
 - **F2**: Add current location to favorites
 - **F3**: Remove location from favorites
 
@@ -55,10 +56,13 @@ go build -o odin main.go
 Odin is built with:
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea): Terminal UI framework
+- [Bubbles](https://github.com/charmbracelet/bubbles): UI components for Bubble Tea
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss): Style definitions for terminal UI
 - [Open-Meteo API](https://open-meteo.com/): Weather data
 - [Photon API](https://photon.komoot.io/): Geocoding for location search
 - [SunCalc](https://github.com/sixdouglas/suncalc): Astronomical calculations
+- [go-i18n](https://github.com/nicksnyder/go-i18n): Internationalization support
+- [go-locale](https://github.com/Xuanwo/go-locale): Locale detection
 
 ## 📝 License
 
