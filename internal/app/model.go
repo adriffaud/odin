@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	"driffaud.fr/odin/internal/app/ui"
 	"driffaud.fr/odin/internal/domain"
 	"driffaud.fr/odin/internal/platform/api/openmeteo"
@@ -53,7 +55,7 @@ type weatherResultMsg struct {
 // InitialModel returns the initial application model
 func InitialModel() Model {
 	s := spinner.New()
-	s.Spinner = spinner.Dot
+	s.Spinner = spinner.Moon
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	favStore, err := storage.NewFavoritesStore()
@@ -79,7 +81,7 @@ func InitialModel() Model {
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
+	return tea.Sequence(
 		m.placeModel.Init(),
 		m.weatherModel.Init(),
 		tea.SetWindowTitle("Odin"),
@@ -175,6 +177,7 @@ func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
 			m.state = StateLoading
 			cmd := func() tea.Msg {
 				places, err := photon.SearchPlaces(query)
+				time.Sleep(500 * time.Millisecond)
 				return placesResultMsg{places: places, err: err}
 			}
 			return m, tea.Batch(cmd, m.spinner.Tick)
@@ -184,6 +187,7 @@ func (m Model) handleEnterKey() (tea.Model, tea.Cmd) {
 				m.state = StateLoading
 				cmd := func() tea.Msg {
 					weather, err := openmeteo.GetWeather(place.Latitude, place.Longitude)
+					time.Sleep(500 * time.Millisecond)
 					return weatherResultMsg{data: weather, err: err}
 				}
 				return m, tea.Batch(cmd, m.spinner.Tick)
