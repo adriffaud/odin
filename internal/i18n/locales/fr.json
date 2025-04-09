@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Météo astronomique",
+    "search_title": "Rechercher un lieu",
+    "search_place": "Entrer un nom de lieu",
+    "favorites_title": "Lieux favoris",
+    "no_favorites": "Aucun lieu favori - Appuyez sur F2 dans la vue météo pour en ajouter",
+    "loading": "Chargement...",
+    "error": "Erreur: {{.Error}}\n\nAppuyer sur une touche pour continuer...",
+    "results_title": "Résultats"
+  },
+  "key_help": {
+    "back": "retour",
+    "tab": "changer de focus",
+    "enter": "sélectionner",
+    "quit": "quitter",
+    "add_favorite": "ajouter aux favoris",
+    "remove_favorite": "retirer des favoris"
+  },
+  "weather": {
+    "no_data": "Pas de données météo disponibles",
+    "at_title": "Météo à {{.Place}} {{.FavStatus}}",
+    "conditions_title": "🔭 Conditions d'observation cette nuit:",
+    "best_period": "Meilleure période: {{.Start}}h à {{.End}}h (couverture nuageuse: {{.CloudCover}}%)",
+    "unfavorable": "Conditions défavorables (couverture nuageuse: {{.CloudCover}}%)",
+    "conditions": "Temp: {{.Temp}}°C | Humidité: {{.Humidity}}% | Vent: {{.WindSpeed}} km/h {{.WindDir}} | Point de rosée: {{.DewPoint}}°C",
+    "precip_and_seeing": "Risque de précipitation: {{.Precip}}% | Indice de seeing: {{.Seeing}}/5",
+    "sunset": "☀️ Coucher : {{.Sunset}} | Crépuscule astro : {{.Dusk}} | Aube astro : {{.Dawn}} | Lever : {{.Sunrise}}",
+    "moonphase": "{{.MoonEmoji}} Lever : {{.Moonrise}} | Coucher: {{.Moonset}} | Illumination : {{.Illumination}}% ({{.PhaseName}})"
+  },
+  "forecast": {
+    "title": "Prévisions des prochaines heures:",
+    "hour": "Heure",
+    "clouds": "Nuages",
+    "rain": "Pluie",
+    "seeing": "Seeing",
+    "wind": "Vent",
+    "humidity": "Humidité",
+    "temp": "Temp",
+    "dew": "Rosée"
+  }
+}

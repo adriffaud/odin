@@ -2,15 +2,15 @@ package i18n
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 
-	"github.com/BurntSushi/toml"
 	"github.com/Xuanwo/go-locale"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 )
 
-//go:embed locales/*.toml
+//go:embed locales/*.json
 var localeFS embed.FS
 
 var (
@@ -25,10 +25,10 @@ var SupportedLocales = []language.Tag{
 
 func Init() error {
 	bundle = i18n.NewBundle(language.English)
-	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
 	for _, locale := range SupportedLocales {
-		_, err := bundle.LoadMessageFileFS(localeFS, "locales/"+locale.String()+".toml")
+		_, err := bundle.LoadMessageFileFS(localeFS, "locales/"+locale.String()+".json")
 		if err != nil {
 			return fmt.Errorf("failed to load %s locale: %w", locale.String(), err)
 		}

@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Astronomical Weather",
+    "search_title": "Search a place",
+    "search_place": "Search for a location",
+    "favorites_title": "Favorite places",
+    "no_favorites": "No favorite places - Press F2 in the weather view to add one",
+    "loading": "Loading...",
+    "error": "Error: {{.Error}}\n\nPress any key to continue...",
+    "results_title": "Results"
+  },
+  "key_help": {
+    "back": "back",
+    "tab": "change focus",
+    "enter": "select",
+    "quit": "quit",
+    "add_favorite": "add to favorites",
+    "remove_favorite": "remove from favorites"
+  },
+  "weather": {
+    "no_data": "No weather data available",
+    "at_title": "Weather at {{.Place}} {{.FavStatus}}",
+    "conditions_title": "🔭 Observation conditions tonight:",
+    "best_period": "Best period: {{.Start}}h to {{.End}}h (cloud cover: {{.CloudCover}}%)",
+    "unfavorable": "Unfavorable conditions (cloud cover: {{.CloudCover}}%)",
+    "conditions": "Temp: {{.Temp}}°C | Humidity: {{.Humidity}}% | Wind: {{.WindSpeed}} km/h {{.WindDir}} | Dew point: {{.DewPoint}}°C",
+    "precip_and_seeing": "Precipitation risk: {{.Precip}}% | Seeing index: {{.Seeing}}/5",
+    "sunset": "☀️ Sunset: {{.Sunset}} | Astro twilight: {{.Dusk}} | Astro dawn: {{.Dawn}} | Sunrise: {{.Sunrise}}",
+    "moonphase": "{{.MoonEmoji}} Moonrise: {{.Moonrise}} | Moonset: {{.Moonset}} | Illumination: {{.Illumination}}% ({{.PhaseName}})"
+  },
+  "forecast": {
+    "title": "Forecast for the next hours:",
+    "hour": "Hour",
+    "clouds": "Clouds",
+    "rain": "Rain",
+    "seeing": "Seeing",
+    "wind": "Wind",
+    "humidity": "Humidity",
+    "temp": "Temp",
+    "dew": "Dew"
+  }
+}

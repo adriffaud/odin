@@ -3,7 +3,6 @@ module driffaud.fr/odin
 go 1.23.7
 
 require (
-	github.com/BurntSushi/toml v1.5.0
 	github.com/Xuanwo/go-locale v1.1.3
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.4
