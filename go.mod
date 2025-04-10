@@ -4,7 +4,7 @@ go 1.23.7
 
 require (
 	github.com/Xuanwo/go-locale v1.1.3
-	github.com/charmbracelet/bubbles v0.20.0
+	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
