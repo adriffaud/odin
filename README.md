@@ -11,6 +11,7 @@ Odin is a command-line application designed for amateur astronomers to check wea
 - **⭐ Favorites Management**: Save and quickly access your favorite observation locations
 - **📊 Seeing Index**: Numerical rating of overall viewing conditions
 - **🕒 Detailed Hourly Forecast**: View temperature, humidity, cloud cover, and more
+- **🌐 Internationalization**: Supports English and French languages
 
 ## 🛠️ Installation
 
@@ -20,16 +21,15 @@ Odin is a command-line application designed for amateur astronomers to check wea
 
 ### Building from Source
 
-1. Clone the repository
-2. Build the application:
-
 ```bash
-go build -o odin main.go
-```
+# Clone the repository
+git clone https://github.com/yourusername/odin.git
+cd odin
 
-3. Run the application:
+# Build the application
+go build -o odin cmd/odin/main.go
 
-```bash
+# Run the application
 ./odin
 ```
 
@@ -51,6 +51,13 @@ go build -o odin main.go
 3. Check the best time period for tonight's viewing conditions
 4. See detailed weather parameters that affect observation quality
 
+## ⚙️ Configuration
+
+Odin stores favorites in the user configuration directory:
+- **Linux**: `~/.config/odin/favorites.json`
+- **macOS**: `~/Library/Application Support/odin/favorites.json`
+- **Windows**: `%APPDATA%\odin\favorites.json`
+
 ## 🔧 Technical Details
 
 Odin is built with:
@@ -58,12 +65,26 @@ Odin is built with:
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea): Terminal UI framework
 - [Bubbles](https://github.com/charmbracelet/bubbles): UI components for Bubble Tea
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss): Style definitions for terminal UI
-- [Open-Meteo API](https://open-meteo.com/): Weather data
-- [Photon API](https://photon.komoot.io/): Geocoding for location search
 - [SunCalc](https://github.com/sixdouglas/suncalc): Astronomical calculations
 - [go-i18n](https://github.com/nicksnyder/go-i18n): Internationalization support
 - [go-locale](https://github.com/Xuanwo/go-locale): Locale detection
 
+### Supported Languages
+
+- English
+- French
+
+### Data Sources
+
+- Weather data provided by [Open-Meteo API](https://open-meteo.com/)
+- Geocoding provided by [Photon API](https://photon.komoot.io/)
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgements
+
+- Weather data provided by [Open-Meteo](https://open-meteo.com/)
+- Geocoding powered by [Photon](https://photon.komoot.io/)
+- Astronomical calculations using [SunCalc](https://github.com/sixdouglas/suncalc)
