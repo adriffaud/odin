@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
 	github.com/sixdouglas/suncalc v0.0.0-20250114185126-291b1938b70c
-	golang.org/x/text v0.27.0
+	golang.org/x/text v0.28.0
 )
 
 require (
